@@ -80,12 +80,12 @@
                         <
                         '(0 1 4 3)
                         '(1 2 5 4))
-         (try-candidate name
-                        candidate
-                        7
-                        +
-                        '(0 1 4 3)
-                        '(1 2 5 4))
+         ;; (try-candidate name
+         ;;                candidate
+         ;;                7
+         ;;                +
+         ;;                '(0 1 4 3)
+         ;;                '(1 2 5 4))
          (try-candidate name
                         candidate
                         #t
@@ -98,39 +98,59 @@
 (unless (test-andmap 'andmap andmap)
   (printf "fail: (test-andmap 'andmap andmap)~n"))
 
+(define map1
+  (lambda (p vs)
+    (letrec ([visit (lambda (ws)
+                      (cond
+                        [(null? ws)
+                         '()]
+                        [(pair? ws)
+                         (cons (p (car ws))
+                               (visit (cdr ws)))]
+                        [else
+                         (errorf 'map1
+                                 "not a proper list: ~s"
+                                 ws)]))])
+      (if (procedure? p)
+          (visit vs)
+          (errorf 'map1
+                  "not a procedure: ~s"
+                  p)))))
 
+(define andmap1
+  (lambda (p vs)
+    (letrec ([visit (lambda (ws)
+                      (if (null? ws)
+                          #t
+                          (and (p (car ws))
+                               (visit (cdr ws)))))])
+      (visit vs))))
 
 (define our-very-own-andmap
-  (lambda (p . args)
-    (cond
-      [(null? args)
-       (errorf 'our-very-own-andmap
-               "incorrect argument count: ~s"
-               args)]
-      ;; [(not (and (map list? args)))
-      ;;  (errorf 'our-very-own-andmap
-      ;;          "one argument is not a proper list: ~s"
-      ;;          args)]
-      [(not (apply = (map length args)))
-       (errorf 'our-very-own-andmap
-               "different input list lengths: ~s"
-               args)]
-      [else
-       (letrec ([visit (lambda (as)
-                         (cond
-                           [(null? (car as))
-                            #t]
-                           [(null? (cdar as))
-                            (apply p (map car as))]
-                           [(pair? (car as))
-                            (and (apply p (map car as))
-                                 (visit (map cdr as)))]
-                           [else
-                            (errorf 'our-very-own-andmap
-                                    "not a proper input list: ~s"
-                                    as)]))])
-         (visit args))]
-      )))
+  (lambda (p arg . args)
+    (letrec ([visit (lambda (v vs)
+                      (cond
+                        [(null? v)
+                         (if (andmap1 null? vs)
+                             #t
+                             (errorf 'our-very-own-andmap
+                                     "input lists differ in length"))]
+                        [(pair? v)
+                         (if (andmap1 pair? vs)
+                             (and (apply p (cons (car v) (map1 car vs)))
+                                  (visit (cdr v) (map1 cdr vs)))
+                             (errorf 'our-very-own-andmap
+                                     "not a proper list: ~s"
+                                     args))]
+                        [else
+                         (errorf 'our-very-own-andmap
+                                 "not a proper list: ~s"
+                                 arg)]))])
+      (if (procedure? p)
+          (visit arg args)
+          (errorf 'our-very-own-andmap
+                  "not a procedure: ~s"
+                  p)))))
 
 
 ;;; Uncomment the following two lines:
