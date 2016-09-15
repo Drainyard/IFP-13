@@ -369,18 +369,21 @@
 
 (define list-sum
   (lambda (l1_init l2_init)
-    (letrec ([visit (lambda (l1 l2 result)
-                      (if (null? l1)
-                          (if (null? l2)
-                              result
-                              (append result l2))
-                          (if (null? l2)
-                              (append result l1)
-                              (visit (cdr l1) 
-                                     (cdr l2) 
-                                     (append result (list (+ (car l1) 
-                                                             (car l2))))))))])
-      (visit l1_init l2_init '()))))
+    (letrec ([visit (lambda (l1 l2)
+                      (cond
+                        [(null? l1)
+                         (if (null? l2)
+                             '()
+                             l2)]
+                        [(null? l2)
+                         (if (null? l1)
+                             '()
+                             l1)]
+                        [else
+                         (cons (+ (car l1) 
+                                  (car l2)) 
+                               (visit (cdr l1) (cdr l2)))]))])
+      (visit l1_init l2_init))))
       
 
 
