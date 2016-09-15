@@ -80,12 +80,12 @@
                         <
                         '(0 1 4 3)
                         '(1 2 5 4))
-         ;; (try-candidate name
-         ;;                candidate
-         ;;                7
-         ;;                +
-         ;;                '(0 1 4 3)
-         ;;                '(1 2 5 4))
+         (try-candidate name
+                        candidate
+                        7
+                        +
+                        '(0 1 4 3)
+                        '(1 2 5 4))
          (try-candidate name
                         candidate
                         #t
@@ -137,8 +137,11 @@
                                      "input lists differ in length"))]
                         [(pair? v)
                          (if (andmap1 pair? vs)
-                             (and (apply p (cons (car v) (map1 car vs)))
-                                  (visit (cdr v) (map1 cdr vs)))
+                             (if (and (null? (cdr v))
+                                      (andmap1 null? (map cdr vs)))
+                                 (apply p (cons (car v) (map1 car vs)))
+                                 (and (apply p (cons (car v) (map1 car vs)))
+                                      (visit (cdr v) (map1 cdr vs))))
                              (errorf 'our-very-own-andmap
                                      "not a proper list: ~s"
                                      args))]
@@ -156,6 +159,20 @@
 ;;; Uncomment the following two lines:
 (unless (test-andmap 'our-very-own-andmap our-very-own-andmap)
   (printf "fail: (test-andmap 'our-very-own-andmap our-very-own-andmap)~n"))
+
+;;; andmap with fold-right
+
+(define fold-right_proper-list
+  (lambda (nil-case cons-case)
+    (lambda (vs)
+      (letrec ([visit (lambda (ws)
+                        (if (null? ws)
+                            nil-case
+                            (cons-case (car ws)
+                                       (visit (cdr ws)))))])
+        (visit vs)))))
+
+;;; We don't know how to do this
 
 ;;;;;;;;;;
 

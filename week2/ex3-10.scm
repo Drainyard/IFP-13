@@ -673,19 +673,24 @@
 
 (define well-balanced?
   (lambda (v_init)
-    (letrec ([visit (lambda (v)
-                      (cond
-                        [(number? v)
-                         #t]
-                        [(pair? v)
-                         (and (= (weight (car v)) (weight (cdr v)))
-                              (visit (car v))
-                              (visit (cdr v)))]
-                        [else
-                         (errorf 'well-balanced
-                                 "not a binary tree: ~s"
-                                 v)]))])
-      (visit v_init))))
+    (number? (letrec ([visit (lambda (v)
+                               (cond
+                                 [(number? v)
+                                  v]
+                                 [(pair? v)
+                                  (let ([n1 (visit (car v))])
+                                        (if (number? n1)
+                                            (let ([n2 (visit (cdr v))])
+                                                  (if (and (number? n2)
+                                                           (= n1 n2))
+                                                      (+ n1 n2)
+                                                      #f))
+                                            #f))]
+                                 [else
+                                  (errorf 'well-balanced
+                                          "not a binary tree: ~s"
+                                          v)]))])
+               (visit v_init)))))
 
 
 (unless (test-mobile well-balanced?)

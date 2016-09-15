@@ -100,6 +100,7 @@
 
 ;;;;;;;;;;
 
+
 (define test-number-of-leaves
   (lambda (candidate)
     (and-all (try-candidate 'test-number-of-leaves
@@ -430,14 +431,12 @@
              )))
 
 (define flatten_alt
-  (fold-right_binary-tree (lambda (n)
-                            (list n))
-                          (lambda (n1 n2)
-                            (append n1 n2))
+  (fold-right_binary-tree list
+                          append
                           (lambda (v)
                             (errorf 'flatten_alt
                                     "not a binary tree: ~s"
-                                    v)))))
+                                    v))))
 
 (unless (test-flatten flatten_alt)
   (printf "fail (test-flatten flatten_alt)~n"))

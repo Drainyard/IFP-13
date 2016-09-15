@@ -265,6 +265,20 @@
                                  v)]))])
       (visit v_init 0))))
 
+(define height_acc_alt
+  (lambda (v_init)
+    (((fold-right_binary-tree (lambda (v)
+                                (lambda (a)
+                                  a))
+                              (lambda (left right)
+                                (lambda (a)
+                                  (max (left (1+ a))
+                                       (right (1+ a)))))
+                              (lambda (v)
+                                (errorf 'height_acc_alt
+                                        "not a binary tree: ~s"
+                                        v))) v_init) 0)))
+
 
 (unless (test-height height_acc)
   (printf "fail: (test-height height_acc)~n"))
@@ -309,10 +323,25 @@
                         [(pair? v)
                          (visit (car v) (visit (cdr v) a))]
                         [else
-                         (errorf 'number-of-nodes_acc
+                         (errorf 'flatten_acc
                                  "not a binary tree: ~s"
                                  v)]))])
       (visit v_init '()))))
+
+(define flatten_acc_alt
+  (lambda (v_init)
+    (((fold-right_binary-tree (lambda (l)
+                                (lambda (a)
+                                  (cons l a)))
+                              (lambda (left right)
+                                (lambda (a)
+                                  (left (right a))))
+                              (lambda (v)
+                                (errorf 'flatten_acc_alt
+                                        "not a binary tree: ~s"
+                                        v))) v_init) '())))
+
+
 
 (unless (test-flatten flatten_acc)
   (printf "fail (test-flatten flatten_acc)~n"))
