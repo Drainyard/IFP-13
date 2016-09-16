@@ -568,28 +568,28 @@
 
 ;;;;;;;;;;
 
-;; (define compile-arithmetic-expression
-;;   (lambda (e_init)
-;;     (letrec ([process (lambda (e)
-;;                         (cond
-;;                           [(is-literal? e)
-;;                            (list (make-PUSH (literal-1 e)))]
-;;                           [(is-plus? e)
-;;                            (append (process (plus-1 e))
-;;                                    (process (plus-2 e))
-;;                                    (list (make-ADD)))]
-;;                           [(is-times? e)
-;;                            (append (process (times-1 e))
-;;                                    (process (times-2 e))
-;;                                    (list (make-MUL)))]
-;;                           [else
-;;                            (errorf 'compile-arithmetic-expression
-;;                                    "unrecognized expression: ~s"
-;;                                    e)]))])
-;;       (make-byte-code-program (process e_init)))))
-
-
 (define compile-arithmetic-expression
+  (lambda (e_init)
+    (letrec ([process (lambda (e)
+                        (cond
+                          [(is-literal? e)
+                           (list (make-PUSH (literal-1 e)))]
+                          [(is-plus? e)
+                           (append (process (plus-1 e))
+                                   (process (plus-2 e))
+                                   (list (make-ADD)))]
+                          [(is-times? e)
+                           (append (process (times-1 e))
+                                   (process (times-2 e))
+                                   (list (make-MUL)))]
+                          [else
+                           (errorf 'compile-arithmetic-expression
+                                   "unrecognized expression: ~s"
+                                   e)]))])
+      (make-byte-code-program (process e_init)))))
+
+
+(define compile-arithmetic-expression_alt
   (lambda (e_init)
     (letrec ([process (lambda (e a)
                         (cond
@@ -608,6 +608,26 @@
                                    "unrecognized expression: ~s"
                                    e)]))])
       (make-byte-code-program (process e_init '())))))
+
+;;; The new compiler is faster. Look at the file for the next exercise for 
+;;; the missing code.
+
+;; > (time (let ([x (compile-arithmetic-expression foo)]) 1))
+;; (time (let ((...)) ...))
+;;     105 collections
+;;     2715 ms elapsed cpu time, including 1106 ms collecting
+;;     2740 ms elapsed real time, including 1135 ms collecting
+;;     926379040 bytes allocated, including 915534880 bytes reclaimed
+;; 1
+;; > (time (let ([x (compile-arithmetic-expression_alt foo)]) 1))
+;; (time (let ((...)) ...))
+;;     9 collections
+;;     1404 ms elapsed cpu time, including 155 ms collecting
+;;     1419 ms elapsed real time, including 153 ms collecting
+;;     83888496 bytes allocated, including 63156080 bytes reclaimed
+;; 1
+
+
 
 (unless (test-compile-arithmetic-expression-and-check-byte-code-program compile-arithmetic-expression check-byte-code-program)
   (printf "fail: (test-compile-arithmetic-expression-and-check-byte-code-program compile-arithmetic-expression check-byte-code-program)~n"))
