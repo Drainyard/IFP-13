@@ -780,14 +780,14 @@
 
 
 (define bigtree
-  (lambda (n b)
+  (lambda (n)
     (if (zero? n)
         (make-literal (random 100))
-        (if b
-            (make-times (bigtree (1- n) b)
-                        (bigtree (1- n) (not b)))
-            (make-plus (bigtree (1- n) b)
-                       (bigtree (1- n) (not b)))))))
+        (if (= (random 2) 0)
+            (make-times (bigtree (1- n))
+                        (bigtree (1- n)))
+            (make-plus (bigtree (1- n))
+                       (bigtree (1- n)))))))
 
 
 (define bigplustree
