@@ -699,46 +699,84 @@
 ;;   (lambda (t1 t2)
 ;;     (make-times (times-1 t1) (make-times (times-2 t1) t2))))
 
-
-(define fold-plus
-  (lambda (ae) 
-    (((fold-right_arithmetic-expression 
-       (lambda (x)
-         (lambda (k)
-           (k (make-literal x))))
-       (lambda (t1 t2)
-         (lambda (k)
-           (t1 (lambda (n)
-                 (make-plus n (t2 k))))))
-       (lambda (t1 t2)
-         (lambda (k)
-           (k (make-times (t1 (lambda (x) x)) (t2 (lambda (x) x))))))
-       (lambda (v)
-         (errorf 'interpret-arithmetic-expression_Magritte_bizarre 
-                 "not a well-formed arithmetic expression: ~s"
-                 v))) ae) (lambda (v) v))))
-
-(define fold-times
-  (lambda (ae) 
-    (((fold-right_arithmetic-expression 
-       (lambda (x)
-         (lambda (k)
-           (k (make-literal x))))
-       (lambda (t1 t2)
-         (lambda (k)
-           (k (make-plus (t1 (lambda (x) x)) (t2 (lambda (x) x))))))
-       (lambda (t1 t2)
-         (lambda (k)
-           (t1 (lambda (n)
-                 (make-times n (t2 k))))))
-       (lambda (v)
-         (errorf 'interpret-arithmetic-expression_Magritte_bizarre 
-                 "not a well-formed arithmetic expression: ~s"
-                 v))) ae) (lambda (v) v))))
-
 (define interpret-arithmetic-expression_Magritte_bizarre
-  (lambda (ae)
-    (fold-times (fold-plus ae))))
+  (lambda (tree)
+    (letrec ([visit (lambda (t k)
+                      (cond
+                        [(is-literal? t)
+                         (k (make-literal (literal-1 t)))]
+                        [(is-plus? t)
+                         (visit-plus t (lambda (x) x))]
+                        [(is-times? t)
+                         (visit-times t (lambda (x) x))]))]
+             [visit-plus (lambda (t k)
+                           (cond
+                             [(is-literal? t)
+                              (visit t k)]
+                             [(is-plus? t)
+                              (visit-plus (plus-1 t) 
+                                          (lambda (x) 
+                                            (make-plus x 
+                                                       (visit-plus (plus-2 t) 
+                                                                   k))))]
+                             [(is-times? t)
+                              (k (visit-times t
+                                              (lambda (x) x)))]))]
+             [visit-times (lambda (t k)
+                            (cond
+                              [(is-literal? t)
+                               (visit t k)]
+                              [(is-times? t)
+                               (visit-times (times-1 t) 
+                                            (lambda (x) 
+                                              (make-times x 
+                                                          (visit-times (times-2 t) 
+                                                                       k))))]
+                              [(is-plus? t)
+                               (k (visit-plus t
+                                              (lambda (x) x)))]))])
+      (visit tree (lambda (x) x)))))
+                    
+
+;; (define fold-plus
+;;   (lambda (ae) 
+;;     (((fold-right_arithmetic-expression 
+;;        (lambda (x)
+;;          (lambda (k)
+;;            (k (make-literal x))))
+;;        (lambda (t1 t2)
+;;          (lambda (k)
+;;            (t1 (lambda (n)
+;;                  (make-plus n (t2 k))))))
+;;        (lambda (t1 t2)
+;;          (lambda (k)
+;;            (k (make-times (t1 (lambda (x) x)) (t2 (lambda (x) x))))))
+;;        (lambda (v)
+;;          (errorf 'interpret-arithmetic-expression_Magritte_bizarre 
+;;                  "not a well-formed arithmetic expression: ~s"
+;;                  v))) ae) (lambda (v) v))))
+
+;; (define fold-times
+;;   (lambda (ae) 
+;;     (((fold-right_arithmetic-expression 
+;;        (lambda (x)
+;;          (lambda (k)
+;;            (k (make-literal x))))
+;;        (lambda (t1 t2)
+;;          (lambda (k)
+;;            (k (make-plus (t1 (lambda (x) x)) (t2 (lambda (x) x))))))
+;;        (lambda (t1 t2)
+;;          (lambda (k)
+;;            (t1 (lambda (n)
+;;                  (make-times n (t2 k))))))
+;;        (lambda (v)
+;;          (errorf 'interpret-arithmetic-expression_Magritte_bizarre 
+;;                  "not a well-formed arithmetic expression: ~s"
+;;                  v))) ae) (lambda (v) v))))
+
+;; (define interpret-arithmetic-expression_Magritte_bizarre
+;;   (lambda (ae)
+;;     (fold-times (fold-plus ae))))
 
 
 
