@@ -638,10 +638,60 @@
 ;;; Write the BNF of the output of compile-and-run-arithmetic-expression_Magritte_bizarre
 ;;; and implement a syntax checker for it:
 
+;;; <arithmetic-expression_bizarre>
+;;; ::= (literal <number>)
+;;;   | (plus <arithmetic-expression_bizarre-plus> <arithmetic-expression_bizarre>)
+;;;   | (times <arithmetic-expression_bizarre-times> <arithmetic-expression_bizarre>)
+;;; 
+;;; <arithmetic-expression_bizarre-plus>
+;;; ::= (literal <number>)
+;;;   | (times <arithmetic-expression_bizarre-times> <arithmetic-expression_bizarre>)
+;;; 
+;;; <arithmetic-expression_bizarre-times>
+;;; ::= (literal <number>)
+;;;   | (plus <arithmetic-expression_bizarre-plus> <arithmetic-expression_bizarre>)
+
 (define syntax-check-bizarre
   (lambda (e)
-    (errorf 'syntax-check-bizarre
-            "not implemented yet")))
+    (letrec ([visit
+              (lambda (e)
+                (cond
+                  [(is-literal? e)
+                   #t]
+                  [(is-plus? e)
+                   (and (visit-plus (plus-1 e))
+                        (visit (plus-2 e)))]
+                  [(is-times? e)
+                   (and (visit-times (times-1 e))
+                        (visit (times-2 e)))]
+                  [else
+                   #f]))]
+             [visit-plus
+              (lambda (e)
+                (cond
+                  [(is-literal? e)
+                   #t]
+                  [(is-plus? e)
+                   #t]
+                  [(is-times? e)
+                   (and (visit-times (times-1 e))
+                        (visit (times-2 e)))]                   
+                  [else
+                   #f]))]
+             [visit-times
+              (lambda (e)
+                (cond
+                  [(is-literal? e)
+                   #t]
+                  [(is-plus? e)
+                   (and (visit-plus (plus-1 e))
+                        (visit (plus-2 e)))]
+                  [(is-times? e)
+                   #t]
+                  [else
+                   #f]))])
+      (visit e))))
+
 
 (define test-bizarre-compiler
   (lambda ()
@@ -654,52 +704,15 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;;; (unless (test-bizarre-compiler)
-;;;   (printf "fail: (test-bizarre-compiler)~n"))
+(unless (test-bizarre-compiler)
+  (printf "fail: (test-bizarre-compiler)~n"))
 
 ;;;;;;;;;;
 
 ;;; ***
 ;;; Write the corresponding optimizing Magritte interpreter:
 
-;; We know that this first version is not quite correct, but we decided to try 
-;; with a fold instead. We want to keep it for reference :-)
-
-;; (define interpret-arithmetic-expression_Magritte_bizarre
-;;   (lambda (e)
-;;     (cond
-;;       [(is-literal? e)
-;;        (make-literal (literal-1 e))]
-;;       [(is-plus? e)
-;;        (if (is-plus? (plus-1 e))
-;;            (rotate-plus 
-;;             (interpret-arithmetic-expression_Magritte_bizarre (plus-1 e)) 
-;;             (interpret-arithmetic-expression_Magritte_bizarre (plus-2 e)))
-;;            (make-plus 
-;;             (interpret-arithmetic-expression_Magritte_bizarre (plus-1 e))
-;;             (interpret-arithmetic-expression_Magritte_bizarre (plus-2 e))))]
-;;       [(is-times? e)
-;;        (if (is-times? (times-1 e))
-;;            (rotate-times
-;;             (interpret-arithmetic-expression_Magritte_bizarre (times-1 e)) 
-;;             (interpret-arithmetic-expression_Magritte_bizarre (times-2 e)))
-;;            (make-times
-;;             (interpret-arithmetic-expression_Magritte_bizarre (times-1 e))
-;;             (interpret-arithmetic-expression_Magritte_bizarre (times-2 e))))]
-;;       [else
-;;        (errorf 'interpret-arithmetic-expression_Magritte_bizarre
-;;                "unrecognized expression: ~s"
-;;                e)])))
-
-;; (define rotate-plus
-;;   (lambda (t1 t2)
-;;     (make-plus (plus-1 t1) (make-plus (plus-2 t1) t2))))
-
-;; (define rotate-times
-;;   (lambda (t1 t2)
-;;     (make-times (times-1 t1) (make-times (times-2 t1) t2))))
-
-(define interpret-arithmetic-expression_Magritte_bizarre
+(define interpret-arithmetic-expression_Magritte_bizarre_cont
   (lambda (tree)
     (letrec ([visit (lambda (t k)
                       (cond
@@ -736,53 +749,51 @@
                                (k (visit-plus t
                                               (lambda (x) x)))]))])
       (visit tree (lambda (x) x)))))
-                    
 
-;; (define fold-plus
-;;   (lambda (ae) 
-;;     (((fold-right_arithmetic-expression 
-;;        (lambda (x)
-;;          (lambda (k)
-;;            (k (make-literal x))))
-;;        (lambda (t1 t2)
-;;          (lambda (k)
-;;            (t1 (lambda (n)
-;;                  (make-plus n (t2 k))))))
-;;        (lambda (t1 t2)
-;;          (lambda (k)
-;;            (k (make-times (t1 (lambda (x) x)) (t2 (lambda (x) x))))))
-;;        (lambda (v)
-;;          (errorf 'interpret-arithmetic-expression_Magritte_bizarre 
-;;                  "not a well-formed arithmetic expression: ~s"
-;;                  v))) ae) (lambda (v) v))))
-
-;; (define fold-times
-;;   (lambda (ae) 
-;;     (((fold-right_arithmetic-expression 
-;;        (lambda (x)
-;;          (lambda (k)
-;;            (k (make-literal x))))
-;;        (lambda (t1 t2)
-;;          (lambda (k)
-;;            (k (make-plus (t1 (lambda (x) x)) (t2 (lambda (x) x))))))
-;;        (lambda (t1 t2)
-;;          (lambda (k)
-;;            (t1 (lambda (n)
-;;                  (make-times n (t2 k))))))
-;;        (lambda (v)
-;;          (errorf 'interpret-arithmetic-expression_Magritte_bizarre 
-;;                  "not a well-formed arithmetic expression: ~s"
-;;                  v))) ae) (lambda (v) v))))
-
-;; (define interpret-arithmetic-expression_Magritte_bizarre
-;;   (lambda (ae)
-;;     (fold-times (fold-plus ae))))
-
+(define interpret-arithmetic-expression_Magritte_bizarre
+  (lambda (e)
+    (letrec ([visit
+              (lambda (e)
+                (cond
+                  [(is-literal? e)
+                   (make-literal (literal-1 e))]
+                  [(is-plus? e)
+                   (visit-plus (plus-1 e) (visit (plus-2 e)))]
+                  [(is-times? e)
+                   (visit-times (times-1 e) (visit (times-2 e)))]
+                  [else
+                   (errorf 'interpret-arithmetic-expression_Magritte_bizarre
+                           "illegal input: ~s"
+                           e)]))]
+             [visit-plus
+              (lambda (e a)
+                (cond
+                  [(is-plus? e)
+                   (visit-plus (plus-1 e)
+                               (visit-plus (plus-2 e)
+                                           a))]
+                  [else
+                   (make-plus (visit e) a)]))]
+             [visit-times
+              (lambda (e a)
+                (cond
+                  [(is-times? e)
+                   (visit-times (times-1 e)
+                               (visit-times (times-2 e)
+                                           a))]
+                  [else
+                   (make-times (visit e) a)]))])
+      (visit e))))
 
 
 ;;; ***
 ;;; Is your bizarre Magritte interpreter structurally recursive?
+
+;;; Yes!
+
 ;;; Can you write it with fold-right_arithmetic-expression? 
+
+;;; Yes, but it seems complicated to include mutual recursion in a fold-right.
 
 ;;; ***
 ;;; In plain English, which bizarre program transformation is performed?
@@ -790,9 +801,9 @@
 ;;; When encountering an operator o (a multiplication or an addition),
 ;;; the bizarre compiler keeps traversing the input until finding the first 
 ;;; subexpression of a different type and adds this to the result immediately 
-;;; after the given operator o. This gives the most right-going tree possible 
-;;; from a given input.
+;;; after the given operator o. This gives a flattened tree of a given input.
 
+;;; These transformations are legal because multiplication and addition are associative
 
 ;;;;;;;;;;
 
@@ -862,8 +873,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;; (unless (test-bizarre-Magritte-interpreter)
-;;   (printf "(test-bizarre-Magritte-interpreter) failed~n"))
+(unless (test-bizarre-Magritte-interpreter)
+  (printf "(test-bizarre-Magritte-interpreter) failed~n"))
 
 ;;;;;;;;;;
 
@@ -898,42 +909,58 @@
 ;;; Which is more efficient:
 ;;; interpreting an expression with your bizarre Magritte interpreter, or
 ;;; compiling it with the bizarre Magritte compiler and decompiling the result?
-;;; Ours is faster on mixed trees, but slower on trees including only plus. 
+;;; Ours with continuations is faster, but the one with an accumulator is even faster.
+;;; ??? We are not sure why.
 ;;; See below:
 
-;; (define foo (bigtree 20 #f))
+;; > (define foo (bigtree 20))
+;; > (time (let ([x (interpret-arithmetic-expression_Magritte_bizarre_cont foo)]) 1))
+;; (time (let ((...)) ...))
+;;     19 collections
+;;     2559 ms elapsed cpu time, including 465 ms collecting
+;;     2564 ms elapsed real time, including 467 ms collecting
+;;     159414048 bytes allocated, including 72274496 bytes reclaimed
+;; 1
+;; > (time (let ([x (run-byte-code-program_Magritte (compile-arithmetic-expression_bizarre foo))]) 1))
+;; (time (let ((...)) ...))
+;;     124 collections
+;;     4844 ms elapsed cpu time, including 1234 ms collecting
+;;     4852 ms elapsed real time, including 1238 ms collecting
+;;     1049556832 bytes allocated, including 952512848 bytes reclaimed
+;; 1
+;; > (time (let ([x (run-byte-code-program_Magritte (compile-arithmetic-expression_bizarre bar))]) 1))
+
+;; > (define bar (bigplustree 20))
+;; > (time (let ([x (run-byte-code-program_Magritte (compile-arithmetic-expression_bizarre bar))]) 1))
+;; (time (let ((...)) ...))
+;;     90 collections
+;;     4937 ms elapsed cpu time, including 1826 ms collecting
+;;     5706 ms elapsed real time, including 2605 ms collecting
+;;     773071184 bytes allocated, including 761759904 bytes reclaimed
+;; 1
+;; > (time (let ([x (interpret-arithmetic-expression_Magritte_bizarre_cont bar)]) 1))
+;; (time (let ((...)) ...))
+;;     26 collections
+;;     2225 ms elapsed cpu time, including 488 ms collecting
+;;     2230 ms elapsed real time, including 495 ms collecting
+;;     219739648 bytes allocated, including 46938304 bytes reclaimed
+;; 1
 
 ;; (time (let ([x (interpret-arithmetic-expression_Magritte_bizarre foo)]) 1))
 ;; (time (let ((...)) ...))
-;;     56 collections
-;;     3682 ms elapsed cpu time, including 1326 ms collecting
-;;     3670 ms elapsed real time, including 1331 ms collecting
-;;     469776928 bytes allocated, including 283872848 bytes reclaimed
-;; 1
-;; (time (let ([x (run-byte-code-program_Magritte (compile-arithmetic-expression_bizarre foo))]) 1))
-;; (time (let ((...)) ...))
-;;     129 collections
-;;     4477 ms elapsed cpu time, including 1294 ms collecting
-;;     4480 ms elapsed real time, including 1266 ms collecting
-;;     1111586736 bytes allocated, including 1126369856 bytes reclaimed
-;; 1
-
-;; (define bar (bigplustree 20))
-
-;; (time (let ([x (run-byte-code-program_Magritte (compile-arithmetic-expression_bizarre bar))]) 1))
-;; (time (let ((...)) ...))
-;;     90 collections
-;;     3728 ms elapsed cpu time, including 1154 ms collecting
-;;     3736 ms elapsed real time, including 1121 ms collecting
-;;     773071248 bytes allocated, including 583890064 bytes reclaimed
+;;     10 collections
+;;     1686 ms elapsed cpu time, including 269 ms collecting
+;;     1691 ms elapsed real time, including 272 ms collecting
+;;     83888928 bytes allocated, including 27828304 bytes reclaimed
 ;; 1
 ;; > (time (let ([x (interpret-arithmetic-expression_Magritte_bizarre bar)]) 1))
 ;; (time (let ((...)) ...))
-;;     87 collections
-;;     4041 ms elapsed cpu time, including 2060 ms collecting
-;;     4039 ms elapsed real time, including 1906 ms collecting
-;;     728261184 bytes allocated, including 334646064 bytes reclaimed
+;;     10 collections
+;;     1515 ms elapsed cpu time, including 177 ms collecting
+;;     1517 ms elapsed real time, including 174 ms collecting
+;;     83888928 bytes allocated, including 22945744 bytes reclaimed
 ;; 1
+;; > 
 
 
 ;;;;;;;;;;;;;;;;;;;;
@@ -1061,10 +1088,62 @@
 ;;; Write the BNF of the output of compile-and-run-arithmetic-expression_Magritte_strange
 ;;; and implement a syntax checker for it:
 
+;;; <arithmetic-expression_strange>
+;;; ::= (literal <number>)
+;;;   | (plus <arithmetic-expression_strange> <arithmetic-expression_strange-plus>)
+;;;   | (times <arithmetic-expression_strange> <arithmetic-expression_strange-times>)
+;;; 
+;;; <arithmetic-expression_strange-plus>
+;;; ::= (literal <number>)
+;;;   | (times <arithmetic-expression_strange> <arithmetic-expression_strange-times>)
+;;; 
+;;; <arithmetic-expression_strange-times>
+;;; ::= (literal <number>)
+;;;   | (plus <arithmetic-expression_strange> <arithmetic-expression_strange-plus>)
+
+
 (define syntax-check-strange
   (lambda (e)
-    (errorf 'syntax-check-strange
-            "not implemented yet")))
+        (letrec ([visit
+              (lambda (e)
+                (cond
+                  [(is-literal? e)
+                   #t]
+                  [(is-plus? e)
+                   (and (visit (plus-1 e))
+                        (visit-plus (plus-2 e)))]
+                  [(is-times? e)
+                   (and (visit (times-1 e))
+                        (visit-times (times-2 e)))]
+                  [else
+                   #f]))]
+             [visit-plus
+              (lambda (e)
+                (cond
+                  [(is-literal? e)
+                   #t]
+                  [(is-plus? e)
+                   #t]
+                  [(is-times? e)
+                   (and (visit (times-1 e))
+                        (visit-times (times-2 e)))]                   
+                  [else
+                   #f]))]
+             [visit-times
+              (lambda (e)
+                (cond
+                  [(is-literal? e)
+                   #t]
+                  [(is-plus? e)
+                   (and (visit (plus-1 e))
+                        (visit-plus (plus-2 e)))]
+                  [(is-times? e)
+                   #t]
+                  [else
+                   #f]))])
+      (visit e))))
+
+
 
 (define test-strange-compiler
   (lambda ()
@@ -1077,62 +1156,64 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;;; (unless (test-strange-compiler)
-;;;   (printf "(test-strange-compiler) failed~n"))
+(unless (test-strange-compiler)
+  (printf "(test-strange-compiler) failed~n"))
 
 ;;;;;;;;;;
 
 ;;; ***
 ;;; Write the corresponding optimizing Magritte interpreter:
 
-(define fold-plus_strange
-  (lambda (ae) 
-    (((fold-right_arithmetic-expression 
-       (lambda (x)
-         (lambda (k)
-           (k (make-literal x))))
-       (lambda (t1 t2)
-         (lambda (k)
-           (t2 (lambda (n)
-                 (make-plus (t1 k) n)))))
-       (lambda (t1 t2)
-         (lambda (k)
-           (k (make-times (t1 (lambda (x) x)) (t2 (lambda (x) x))))))
-       (lambda (v)
-         (errorf 'interpret-arithmetic-expression_Magritte_strange
-                 "not a well-formed arithmetic expression: ~s"
-                 v))) ae) (lambda (v) v))))
-
-(define fold-times_strange
-  (lambda (ae) 
-    (((fold-right_arithmetic-expression 
-       (lambda (x)
-         (lambda (k)
-           (k (make-literal x))))
-       (lambda (t1 t2)
-         (lambda (k)
-           (k (make-plus (t1 (lambda (x) x)) (t2 (lambda (x) x))))))
-       (lambda (t1 t2)
-         (lambda (k)
-           (t2 (lambda (n)
-                 (make-times (t1 k) n)))))
-       (lambda (v)
-         (errorf 'interpret-arithmetic-expression_Magritte_strange
-                 "not a well-formed arithmetic expression: ~s"
-                 v))) ae) (lambda (v) v))))
-
-(define interpret-arithmetic-expression_Magritte_strange
-  (lambda (ae)
-    (fold-times_strange (fold-plus_strange ae))))
-
 ;;; ***
 ;;; Is your wonderful Magritte interpreter structurally recursive?
+
+;;; Yes.
+
 ;;; Can you write it with fold-right_arithmetic-expression?
+
+;;; Yes, but it is complicated.
 
 ;;; ***
 ;;; In plain English, which wonderful program transformation is performed?
 ;;; The strange compiler does the opposite of the bizarre compiler, meaning it
-;;; results in the most left-going tree possible.
+;;; ??? flatten right/left?
+
+
+(define interpret-arithmetic-expression_Magritte_strange
+  (lambda (e)
+    (letrec ([visit
+              (lambda (e)
+                (cond
+                  [(is-literal? e)
+                   (make-literal (literal-1 e))]
+                  [(is-plus? e)
+                   (visit-plus (plus-2 e) (visit (plus-1 e)))]
+                  [(is-times? e)
+                   (visit-times (times-2 e) (visit (times-1 e)))]
+                  [else
+                   (errorf 'interpret-arithmetic-expression_Magritte_bizarre
+                           "illegal input: ~s"
+                           e)]))]
+             [visit-plus
+              (lambda (e a)
+                (cond
+                  [(is-plus? e)
+                   (visit-plus (plus-2 e)
+                               (visit-plus (plus-1 e)
+                                           a))]
+                  [else
+                   (make-plus a (visit e))]))]
+             [visit-times
+              (lambda (e a)
+                (cond
+                  [(is-times? e)
+                   (visit-times (times-2 e)
+                               (visit-times (times-1 e)
+                                           a))]
+                  [else
+                   (make-times a (visit e))]))])
+      (visit e))))
+
 
 ;;;;;;;;;;
 
@@ -1173,8 +1254,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;;; (unless (test-strange-Magritte-interpreter)
-;;;   (printf "(test-strange-Magritte-interpreter) failed~n"))
+(unless (test-strange-Magritte-interpreter)
+  (printf "(test-strange-Magritte-interpreter) failed~n"))
 
 ;;;;;;;;;;
 
@@ -1192,8 +1273,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;;; (unless (test_is_interpret-arithmetic-expression_Magritte_strange_idempotent?)
-;;;   (printf "fail: (test_is_interpret-arithmetic-expression_Magritte_strange_idempotent?)~n"))
+(unless (test_is_interpret-arithmetic-expression_Magritte_strange_idempotent?)
+  (printf "fail: (test_is_interpret-arithmetic-expression_Magritte_strange_idempotent?)~n"))
 
 ;;;;;;;;;;
 
@@ -1203,29 +1284,30 @@
 ;;; compiling it with the wonderful Magritte compiler and decompiling the result?
 
 ;;; OURS IS! Yours didn't finish on bar, so we interrupted it after a minute.
+;;; ??? We are not sure why.
 
-;; (time (let ([x (run-byte-code-program_Magritte (compile-arithmetic-expression_strange foo))]) 1))
+;;  (time (let ([x (run-byte-code-program_Magritte (compile-arithmetic-expression_strange foo))]) 1))
 ;; (time (let ((...)) ...))
-;;     177 collections
-;;     4820 ms elapsed cpu time, including 1498 ms collecting
-;;     4813 ms elapsed real time, including 1592 ms collecting
-;;     1530446784 bytes allocated, including 1505665952 bytes reclaimed
+;;     369 collections
+;;     9454 ms elapsed cpu time, including 4271 ms collecting
+;;     9466 ms elapsed real time, including 4290 ms collecting
+;;     3814110768 bytes allocated, including 4010560992 bytes reclaimed
 ;; 1
 ;; > (time (let ([x (interpret-arithmetic-expression_Magritte_strange foo)]) 1))
 ;; (time (let ((...)) ...))
-;;     56 collections
-;;     3479 ms elapsed cpu time, including 1217 ms collecting
-;;     3470 ms elapsed real time, including 1231 ms collecting
-;;     469776928 bytes allocated, including 208061200 bytes reclaimed
+;;     10 collections
+;;     1641 ms elapsed cpu time, including 229 ms collecting
+;;     1643 ms elapsed real time, including 230 ms collecting
+;;     83888928 bytes allocated, including 24361600 bytes reclaimed
+;; 1
+;; > (time (let ([x (interpret-arithmetic-expression_Magritte_strange bar)]) 1))
+;; (time (let ((...)) ...))
+;;     10 collections
+;;     1509 ms elapsed cpu time, including 204 ms collecting
+;;     1513 ms elapsed real time, including 205 ms collecting
+;;     83888928 bytes allocated, including 124728224 bytes reclaimed
 ;; 1
 
-;; (time (let ([x (interpret-arithmetic-expression_Magritte_strange bar)]) 1))
-;; (time (let ((...)) ...))
-;;     83 collections
-;;     3729 ms elapsed cpu time, including 1747 ms collecting
-;;     3723 ms elapsed real time, including 1717 ms collecting
-;;     702271472 bytes allocated, including 341451728 bytes reclaimed
-;; 1
 
 ;;;;;;;;;;;;;;;;;;;;
 
@@ -1353,10 +1435,72 @@
 ;;; Write the BNF of the output of compile-and-run-arithmetic-expression_Magritte_surprising
 ;;; and implement a syntax checker for it:
 
+;;; <arithmetic-expression_surprising>
+;;; ::= (literal <number>)
+;;;   | (plus <arithmetic-expression_surprising-plus> <arithmetic-expression_surprising-plus>)
+;;;   | (times <arithmetic-expression_surprising-times> <arithmetic-expression_surprising-times>)
+;;;
+;;; <arithmetic-expression_surprising-plus>
+;;; ::= (literal <number-plus>)
+;;;   | (times <arithmetic-expression_surprising-times> <arithmetic-expression_surprising-times>)
+;;;   | (plus <arithmetic-expression_surprising-plus> <arithmetic-expression_surprising-plus>)
+;;; 
+;;; <arithmetic-expression_surprising-times>
+;;; ::= (literal <number-times>)
+;;;   | (plus <arithmetic-expression_surprising-plus> <arithmetic-expression_surprising-plus>)
+;;;   | (times <arithmetic-expression_surprising-times> <arithmetic-expression_surprising-times>)
+;;; 
+;;; <number-plus> 
+;;; ::= any scheme number that is not 0
+;;;
+;;; <number-times>
+;;; ::= any scheme number that is not 0 or 1
+
+
 (define syntax-check-surprising
   (lambda (e)
-    (errorf 'syntax-check-surprising
-            "not implemented yet")))
+        (letrec ([visit
+              (lambda (e)
+                (cond
+                  [(is-literal? e)
+                   #t]
+                  [(is-plus? e)
+                   (and (visit-plus (plus-1 e))
+                        (visit-plus (plus-2 e)))]
+                  [(is-times? e)
+                   (and (visit-times (times-1 e))
+                        (visit-times (times-2 e)))]
+                  [else
+                   #f]))]
+             [visit-plus
+              (lambda (e)
+                (cond
+                  [(and (is-literal? e)
+                        (not (= (literal-1 e) 0)))
+                   #t]
+                  [(is-plus? e)
+                   (and (visit-plus (plus-1 e))
+                        (visit-plus (plus-2 e)))]
+                  [(is-times? e)
+                   (and (visit-times (times-1 e))
+                        (visit-times (times-2 e)))]                   
+                  [else
+                   #f]))]
+             [visit-times
+              (lambda (e)
+                (cond
+                  [(and (is-literal? e)
+                        (not (or (= (literal-1 e) 0) (= (literal-1 e) 1))))
+                   #t]
+                  [(is-plus? e)
+                   (and (visit-plus (plus-1 e))
+                        (visit-plus (plus-2 e)))]
+                  [(is-times? e)
+                   (and (visit-times (times-1 e))
+                        (visit-times (times-2 e)))]
+                  [else
+                   #f]))])
+      (visit e))))
 
 (define test-surprising-compiler
   (lambda ()
@@ -1374,8 +1518,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;;; (unless (test-surprising-compiler)
-;;;   (printf "(test-surprising-compiler) failed~n"))
+(unless (test-surprising-compiler)
+  (printf "(test-surprising-compiler) failed~n"))
 
 ;;;;;;;;;;
 
@@ -1410,13 +1554,18 @@
 
 ;;; ***
 ;;; Is your surprising Magritte interpreter structurally recursive?
+
+;;; Yes.
+
 ;;; Can you write it with fold-right_arithmetic-expression?
+
+;;; Yes. See above.
 
 ;;; ***
 ;;; In plain English, which surprising program transformation is performed?
-;;; The surprising compiler simplifies additions with zero to just the other
-;;; argument. Moreover, it simplifies multiplication with one to just the 
-;;; other argument and multilplication with zero to zero. 
+;;; The surprising compiler simplifies additions with the neutral element zero
+;;; to just the other argument. Moreover, it simplifies multiplication with the neutral element 1
+;;; to just the  other argument and multilplication with the absorbing element zero to zero. 
 
 ;;;;;;;;;;
 
@@ -1457,8 +1606,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;;; (unless (test-surprising-Magritte-interpreter)
-;;;   (printf "(test-surprising-Magritte-interpreter) failed~n"))
+(unless (test-surprising-Magritte-interpreter)
+  (printf "(test-surprising-Magritte-interpreter) failed~n"))
 
 ;;;;;;;;;;
 
@@ -1486,7 +1635,9 @@
 ;;; interpreting an expression with your surprising Magritte interpreter, or
 ;;; compiling it with the surprising Magritte compiler and decompiling the result?
 
-;;; Our one is significantly faster.
+;;; Our one is significantly faster unless you have a multiplication with zero very close to the root in a
+;;; large tree. The reason for this is that our interpreter checks the zero and stops on the, but
+;;; traverses the big tree anyway instead of stopping immediately.
 
 ;; > (time (let ([x (run-byte-code-program_Magritte (compile-arithmetic-expression_surprising bar))]) 1))
 ;; (time (let ((...)) ...))
@@ -1516,6 +1667,23 @@
 ;;     1663 ms elapsed real time, including 251 ms collecting
 ;;     182536208 bytes allocated, including 153462848 bytes reclaimed
 ;; 1
+
+;; (time (let ([x (run-byte-code-program_Magritte (compile-arithmetic-expression_surprising baz))]) 1))
+;; (time (let ((...)) ...))
+;;     no collections
+;;     0 ms elapsed cpu time
+;;     0 ms elapsed real time
+;;     1024 bytes allocated
+;; 1
+;; > > (time (let ([x (interpret-arithmetic-expression_Magritte_surprising baz)]) 1))
+;; #<procedure >>
+;; > (time (let ((...)) ...))
+;;     22 collections
+;;     3048 ms elapsed cpu time, including 1149 ms collecting
+;;     3531 ms elapsed real time, including 1629 ms collecting
+;;     182587040 bytes allocated, including 622886768 bytes reclaimed
+;; 1
+;; > 
 
 
 ;;;;;;;;;;;;;;;;;;;;
