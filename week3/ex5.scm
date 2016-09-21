@@ -910,7 +910,8 @@
 ;;; interpreting an expression with your bizarre Magritte interpreter, or
 ;;; compiling it with the bizarre Magritte compiler and decompiling the result?
 ;;; Ours with continuations is faster, but the one with an accumulator is even faster.
-;;; ??? We are not sure why.
+;;; We see that the bizarre Magritte compiler traverses the tree of expressions twice,
+;;; while ours only accumulates once and then returns that result.
 ;;; See below:
 
 ;; > (define foo (bigtree 20))
@@ -1176,7 +1177,7 @@
 ;;; ***
 ;;; In plain English, which wonderful program transformation is performed?
 ;;; The strange compiler does the opposite of the bizarre compiler, meaning it
-;;; ??? flatten right/left?
+;;; does a right flatten instead of a left
 
 
 (define interpret-arithmetic-expression_Magritte_strange
@@ -1625,8 +1626,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;;; (unless (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)
-;;;   (printf "fail: (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)~n"))
+(unless (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)
+  (printf "fail: (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)~n"))
 
 ;;;;;;;;;;
 
