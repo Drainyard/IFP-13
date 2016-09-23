@@ -14,7 +14,7 @@
 
 ;;;;;;;;;;
 
-(load "week-03_arithmetic-expressions-sample.scm")
+(load "ae-sample.scm")
 
 ;;;;;;;;;;
 
@@ -866,17 +866,44 @@
   (lambda (depth_init)
     (if (and (integer? depth_init)
              (not (negative? depth_init)))
-        ((fold-right_natural-number (errorf 'generate-random-arithmetic-expression_alt
-                                            "the base case is not implemented yet")
+        ((fold-right_natural-number (make-literal (random 100))
                                     (lambda (c)
-                                      (errorf 'generate-random-arithmetic-expression_alt
-                                              "the induction case is not implemented yet")))
+                                      (case (random 5)
+                                        [(0)
+                                         (make-literal (- (random 100)))]
+                                        [(1 2)
+                                         (make-plus c c)]
+                                        [else
+                                         (make-times c c)])))
          depth_init)
         (errorf 'generate-random-arithmetic-expression_alt
                 "not a non-negative integer: ~s"
                 depth_init))))
 
 ;;;;;;;;;;;;;;;;;;;;
+
+;;; This doesn't work as expected, since we didn't think about
+;;; Scheme beeing call by value, which results in the calls to the
+;;; random procedure only beeing evaluated once.
+
+(define generate-random-arithmetic-expression_alt-fix
+  (lambda (depth_init)
+    (if (and (integer? depth_init)
+             (not (negative? depth_init)))
+        (((fold-right_natural-number (lambda (l) (make-literal (random 100)))
+                                    (lambda (c)
+                                      (lambda (l)
+                                      (case (random 5)
+                                        [(0)
+                                         (l (make-literal (- (random 100))))]
+                                        [(1 2)
+                                         (l (make-plus c c))]
+                                        [else
+                                         (l (make-times c c))]))))
+         depth_init) list)
+        (errorf 'generate-random-arithmetic-expression_alt-fix
+                "not a non-negative integer: ~s"
+                depth_init))))
 
 ;;; end of week-04_the-bizarre-optimizing-compiler.scm
 
