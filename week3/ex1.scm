@@ -8,6 +8,8 @@
 
 ;;;;;;;;;;
 
+(load "ex5.scm")
+
 (define proper-list-of-given-length?
   (lambda (v n)
     (or (and (null? v)
@@ -589,6 +591,39 @@
       (make-byte-code-program (process e_init)))))
 
 
+(define compile-arithmetic-expression_fold
+  (lambda (e_init)
+    (make-byte-code-program
+     ((fold-right_arithmetic-expression
+       (lambda (e)
+         (list (make-PUSH e)))
+       (lambda (e1 e2)
+         (append e1 e2 (list (make-ADD))))
+       (lambda (e1 e2)
+         (append e1 e2 (list (make-MUL))))
+       (lambda (e)
+         (errorf 'compile-arithmetic-expression_fold
+                 "unrecognized expression: ~s"
+                 e))) e_init))))
+
+(define compile-arithmetic-expression_alt-fold
+  (lambda (e_init)
+    (make-byte-code-program
+     (((fold-right_arithmetic-expression
+       (lambda (e)
+         (lambda (a)
+           (cons (make-PUSH e) a)))
+       (lambda (e1 e2)
+         (lambda (a)
+           (e1 (e2 (cons (make-ADD) a)))))
+       (lambda (e1 e2)
+         (lambda (a)
+           (e1 (e2 (cons (make-MUL) a)))))
+       (lambda (e)
+         (errorf 'compile-arithmetic-expression_alt-fold
+                 "unrecognized expression: ~s"
+                 e))) e_init) '()))))
+
 (define compile-arithmetic-expression_alt
   (lambda (e_init)
     (letrec ([process (lambda (e a)
@@ -604,7 +639,7 @@
                                     (process (times-2 e) (cons
                                                           (make-MUL) a)))]
                           [else
-                           (errorf 'compile-arithmetic-expression
+                           (errorf 'compile-arithmetic-expression_alt
                                    "unrecognized expression: ~s"
                                    e)]))])
       (make-byte-code-program (process e_init '())))))
