@@ -1285,7 +1285,8 @@
 ;;; compiling it with the wonderful Magritte compiler and decompiling the result?
 
 ;;; OURS IS! Yours didn't finish on bar, so we interrupted it after a minute.
-;;; ??? We are not sure why.
+;;; Our interpreter only does one pass of the arithmetic expression whereas
+;;; Compiling and running results in at least two passes.
 
 ;;  (time (let ([x (run-byte-code-program_Magritte (compile-arithmetic-expression_strange foo))]) 1))
 ;; (time (let ((...)) ...))
