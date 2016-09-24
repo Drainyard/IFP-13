@@ -1585,34 +1585,32 @@
                               (visit y 
                                      k1
                                      (lambda () 
-                                       (ke (make-plus (make-literal 1)
-                                                      (make-literal 1))))
+                                       (make-plus (make-literal 1)
+                                                  (make-literal 1)))
                                      (lambda (ty) 
-                                       (ke (make-plus (make-literal 1)
-                                                      ty)))))
+                                       (make-plus (make-literal 1) ty))))
                             (lambda (t) 
                               (visit y
-                                     (lambda () (ke t))
+                                     (lambda () t)
                                      (lambda () 
-                                       (ke (make-plus t 
-                                                      (make-literal 1))))
+                                       (make-plus t (make-literal 1)))
                                      (lambda (ty) 
-                                       (ke (make-plus t ty)))))))]
+                                       (make-plus t ty))))))]
                   [(is-times? v)
                    (let ([x (times-1 v)]
                          [y (times-2 v)])
                      (visit x 
-                            (lambda () (ke (make-literal 0)))
+                            (lambda () (make-literal 0))
                             (lambda () 
                               (visit y 
-                                     (lambda () (ke (make-literal 0)))
-                                     (lambda () (ke (make-literal 1)))
-                                     (lambda (ty) (ke ty))))
+                                     (lambda () (make-literal 0))
+                                     (lambda () (make-literal 1))
+                                     (lambda (ty) ty)))
                             (lambda (t) 
                               (visit y
-                                     (lambda () (ke (make-literal 0)))
-                                     (lambda () (ke t))
-                                     (lambda (ty) (ke (make-times t ty)))))))]
+                                     (lambda () (make-literal 0))
+                                     (lambda () t)
+                                     (lambda (ty) (make-times t ty))))))]
                   [else 
                    (errorf 
                     'interpret-arithmetic-expression_Magritte_surprising
@@ -1680,8 +1678,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;; (unless (test-surprising-Magritte-interpreter)
-;;   (printf "(test-surprising-Magritte-interpreter) failed~n"))
+(unless (test-surprising-Magritte-interpreter)
+  (printf "(test-surprising-Magritte-interpreter) failed~n"))
 
 ;;;;;;;;;;
 
