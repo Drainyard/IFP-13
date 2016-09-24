@@ -1920,10 +1920,10 @@
                    (let ([x (times-1 v)]
                          [y (times-2 v)])
                      (visit x 
-                            (lambda () (make-literal 0))
+                            k0
                             (lambda () 
                               (visit y 
-                                     (lambda () (make-literal 0))
+                                     k0
                                      (lambda () (make-literal 1))
                                      (lambda (ty) (ke ty))))
                             (lambda (t) 
