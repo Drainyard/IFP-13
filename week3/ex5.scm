@@ -1529,30 +1529,102 @@
 ;;; Write the corresponding optimizing Magritte interpreter:
 
 (define interpret-arithmetic-expression_Magritte_surprising
-  (fold-right_arithmetic-expression 
-   make-literal
-   (lambda (t1 t2)
-     (if (equal? (make-literal 0) t1)
-         t2
-         (if (equal? (make-literal 0) t2)
-             t1
-             (make-plus t1 t2))))
-   (lambda (t1 t2)
-     (cond 
-       [(or (equal? (make-literal 0) t1)
-            (equal? (make-literal 0) t2))
-        (make-literal 0)]
-       [(equal? (make-literal 1) t1)
-        t2]
-       [(equal? (make-literal 1) t2)
-        t1]
-       [else 
-        (make-times t1 t2)]))
-   (lambda (e) (errorf 'interpret-arithmetic-expression_Magritte_surprising
-                       "unrecognized expression: ~s"
-                       e))))
+  (lambda (v_init)
+    (letrec ([visit 
+              (lambda (v)
+                (cond
+                  [(is-literal? v)
+                   (make-literal (literal-1 v))]
+                  [(is-plus? v)
+                   (let ([v1 (visit (plus-1 v))]
+                         [v2 (visit (plus-2 v))])
+                     (if (equal? (make-literal 0) v1)
+                         v2
+                         (if (equal? (make-literal 0) v2)
+                             v1
+                             (make-plus v1 v2))))]
+                  [(is-times? v)
+                   (let ([v1 (visit (times-1 v))])
+                     (cond
+                       [(or (equal? (make-literal 0) v1)
+                            (equal? (make-literal 0) (visit (times-2 v))))
+                        (make-literal 0)]
+                       [(equal? (make-literal 1) v1)
+                        (visit (times-2 v))]
+                       [(equal? (make-literal 1) (visit (times-2 v)))
+                        v1]
+                       [else
+                        (make-times v1 (visit (times-2 v)))]))]
+                  [else 
+                   (errorf 
+                    'interpret-arithmetic-expression_Magritte_surprising
+                    "unrecognized arithmetic expression: ~s"
+                    v)]))])
+      (visit v_init))))
+
+(define interpret-arithmetic-expression_Magritte_surprising_kont
+  (lambda (v_init)
+    (letrec ([visit 
+              (lambda (v k0 k1 ke)
+                (cond
+                  [(is-literal? v)
+                   (let ([x (literal-1 v)])
+                     (cond 
+                       [(= 0 x)
+                        (k0)]
+                       [(= 1 x)
+                        (k1)]
+                       [else (ke (make-literal x))]))]
+                  [(is-plus? v)
+                   (let ([x (plus-1 v)]
+                         [y (plus-2 v)])
+                     (visit x 
+                            (lambda () 
+                              (visit y k0 k1 ke))
+                            (lambda () 
+                              (visit y 
+                                     k1
+                                     (lambda () 
+                                       (ke (make-plus (make-literal 1)
+                                                      (make-literal 1))))
+                                     (lambda (ty) 
+                                       (ke (make-plus (make-literal 1)
+                                                      ty)))))
+                            (lambda (t) 
+                              (visit y
+                                     (lambda () (ke t))
+                                     (lambda () 
+                                       (ke (make-plus t 
+                                                      (make-literal 1))))
+                                     (lambda (ty) 
+                                       (ke (make-plus t ty)))))))]
+                  [(is-times? v)
+                   (let ([x (times-1 v)]
+                         [y (times-2 v)])
+                     (visit x 
+                            (lambda () (ke (make-literal 0)))
+                            (lambda () 
+                              (visit y 
+                                     (lambda () (ke (make-literal 0)))
+                                     (lambda () (ke (make-literal 1)))
+                                     (lambda (ty) (ke ty))))
+                            (lambda (t) 
+                              (visit y
+                                     (lambda () (ke (make-literal 0)))
+                                     (lambda () (ke t))
+                                     (lambda (ty) (ke (make-times t ty)))))))]
+                  [else 
+                   (errorf 
+                    'interpret-arithmetic-expression_Magritte_surprising
+                    "unrecognized arithmetic expression: ~s"
+                    v)]))])
+      (visit v_init 
+             (lambda () (make-literal 0))
+             (lambda () (make-literal 1))
+             (lambda (x)  x)))))
+
     
-    
+
 
 ;;; ***
 ;;; Is your surprising Magritte interpreter structurally recursive?
@@ -1601,15 +1673,15 @@
   (lambda ()
     (andmap (lambda (ae)
               (syntax-check-surprising
-               (interpret-arithmetic-expression_Magritte_surprising
+               (interpret-arithmetic-expression_Magritte_surprising_kont
                  (parse-arithmetic-expression
                   ae))))
             sample-of-arithmetic-expressions)))
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-(unless (test-surprising-Magritte-interpreter)
-  (printf "(test-surprising-Magritte-interpreter) failed~n"))
+;; (unless (test-surprising-Magritte-interpreter)
+;;   (printf "(test-surprising-Magritte-interpreter) failed~n"))
 
 ;;;;;;;;;;
 
