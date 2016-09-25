@@ -1881,6 +1881,14 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;
+;;; Exercise 9
+;;;;;;;;;;;;;;;;;;;;
+
+;;; To construct this monster, we first looked at each case, literal, plus and times,
+;;; and went through each continuation that the local recursive procedure should take.
+;;; Our basecase is basically the identity function. The rest are the matematical rules
+;;; for the neutral elements, and the absorbing element, and every other number.
+
 
 (define interpret-arithmetic-expression_Magritte_surprising_kont
   (lambda (v_init)
@@ -1906,7 +1914,7 @@
                                      k1
                                      (lambda () 
                                        (ke (make-plus (make-literal 1)
-                                                  (make-literal 1))))
+                                                      (make-literal 1))))
                                      (lambda (ty) 
                                        (ke (make-plus (make-literal 1) ty)))))
                             (lambda (t) 
@@ -1922,18 +1930,15 @@
                      (visit x 
                             k0
                             (lambda () 
-                              (visit y 
-                                     k0
-                                     (lambda () (make-literal 1))
-                                     (lambda (ty) (ke ty))))
-                            (lambda (t) 
+                              (visit y k0 k1 ke))
+                                     (lambda (t) 
                               (visit y
-                                     (lambda () (make-literal 0))
+                                     k0
                                      (lambda () (ke t))
                                      (lambda (ty) (ke (make-times t ty)))))))]
                   [else 
                    (errorf 
-                    'interpret-arithmetic-expression_Magritte_surprising
+                    'interpret-arithmetic-expression_Magritte_surprising_kont
                     "unrecognized arithmetic expression: ~s"
                     v)]))])
       (visit v_init 
