@@ -17,6 +17,8 @@
                  3)
          (equal? (candidate (lambda (x) x) '(#f 3))
                  #f)
+         (equal? (candidate (lambda (x) x) '(#f 3 4 5))
+                 #f)
          ;;;
          )))
 
@@ -59,7 +61,8 @@
 (define andmap1-alt
   (lambda (p vs)
     (letrec ([visit (trace-lambda test (ws a)
-                      (if (null? ws)
+                      (if (or (null? ws)
+                              (equal? #f a))
                           a
                           (visit (cdr ws) (and a (p (car ws))))))])
       (visit vs #t))))
