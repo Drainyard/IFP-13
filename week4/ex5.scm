@@ -46,15 +46,23 @@
 ;;; All (p (car ws)) calls in this version are tail calls, but it seems ugly to 
 ;;; check whether the remaining list is a singleton every time.
 
+;; (define andmap1-alt
+;;   (lambda (p vs)
+;;     (letrec ([visit (trace-lambda test (ws a)
+;;                       (if (null? ws)
+;;                           (car a)
+;;                           (if (p (car ws))
+;;                               (visit (cdr ws) (cons (p (car ws)) a))
+;;                               #f)))])
+;;       (visit vs '(#t)))))
+
 (define andmap1-alt
   (lambda (p vs)
     (letrec ([visit (trace-lambda test (ws a)
                       (if (null? ws)
-                          (car a)
-                          (if (p (car ws))
-                              (visit (cdr ws) (cons (p (car ws)) a))
-                              #f)))])
-      (visit vs '(#t)))))
+                          a
+                          (visit (cdr ws) (and a (p (car ws))))))])
+      (visit vs #t))))
 
 ;;; In this case the (p (car ws)) calls are not in tail position, so technically
 ;;; it doesn't solve the exercise, but we thought it a better idea anyway.
