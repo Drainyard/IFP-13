@@ -381,7 +381,7 @@
 
 (unless (test-interpret-arithmetic-expression compile-and-run-arithmetic-expression)
   (printf "fail: (test-interpret-arithmetic-expression compile-and-run-arithmetic-expression)~n"))
->>>>>>> 362f30402811219f22cdf75f5111fe1499b4bd06
+
 
 ;;;;;;;;;;
 
@@ -892,19 +892,20 @@
     (if (and (integer? depth_init)
              (not (negative? depth_init)))
         (((fold-right_natural-number
-           (lambda (x) (make-literal (random 100)))
+           (lambda () (make-literal (random 100)))
            (lambda (c)
              (case (random 5)
                [(0)
-                (lambda (x) (make-literal (- (random 100))))]
+                (lambda () (make-literal (- (random 100))))]
                [(1 2)
-                (lambda (x) (make-plus (c 0) (c 0)))]
+                (lambda () (make-plus (c) (c)))]
                [else
-                (lambda (x) (make-times (c 0) (c 0)))])))
-         depth_init) 0)
+                (lambda () (make-times (c) (c)))])))
+         depth_init))
     (errorf 'generate-random-arithmetic-expression_alt-fix
             "not a non-negative integer: ~s"
             depth_init))))
+
 
 ;;; We know that the (random 5) call is still only beeing evaluated once,
 ;;; at every depth.
