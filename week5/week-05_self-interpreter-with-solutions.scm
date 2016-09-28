@@ -258,6 +258,11 @@
 (define is-string?
   string?)
 
+;;; Exercise 4
+(define is-char?
+  char?)
+
+
 (define is-variable?
   (lambda (v)
     (and (symbol? v)
@@ -376,6 +381,11 @@
     e))
 
 (define string_0
+  (lambda (e)
+    e))
+
+;;; Exercise 4
+(define char_0
   (lambda (e)
     e))
 
@@ -509,6 +519,8 @@
     integer_0
     is-boolean?
     boolean_0
+    is-char?
+    char_0
     is-string?
     string_0
     is-variable?
@@ -560,7 +572,9 @@
     application_4
     list-ref
     list-tail
+    string-ref
     +
+    -
     ;;; etc.
     ))
 
@@ -573,6 +587,8 @@
         integer_0
         is-boolean?
         boolean_0
+        is-char?
+        char_0
         is-string?
         string_0
         is-variable?
@@ -624,7 +640,9 @@
         application_4
         list-ref
         list-tail
+        string-ref
         +
+        -
         ;;; etc.
         ))
 
@@ -644,6 +662,8 @@
                    (boolean_0 e)]
                   [(is-string? e)
                    (string_0 e)]
+                  [(is-char? e)
+                   (char_0 e)]
                   [(is-variable? e)
                    (env-lookup (variable_0 e) env)]
                   [(is-quote? e)
@@ -893,6 +913,94 @@
       (eval e (make-env-init 'interpret predefined-variables predefined-values)))))
 
 ;;;;;;;;;;
+
+
+
+;;;;;;;;;;;;;;;;;;
+;;; Exercise 1 ;;;
+;;;;;;;;;;;;;;;;;;
+
+;;; We tried running (interpret '((lambda (x y z) (+ z z)) 1 10 100)) within the call-by-value interpreter
+;;; after having made the inner recursive function of interpret a trace-lambda, but realised that
+;;; trace-lambda was not implemented within that interpreter.
+;;; Instead we ran it within Petite-Chez-Scheme and got the following result
+
+;; (interpret '((lambda (x y z) (+ z z)) 1 10 100))
+;; |(interpret ((lambda (x y z) (+ z z)) 1 10 100) #<procedure>)
+;; | (interpret (lambda (x y z) (+ z z)) #<procedure>)
+;; | #<procedure>
+;; | (interpret 1 #<procedure>)
+;; | 1
+;; | (interpret 10 #<procedure>)
+;; | 10
+;; | (interpret 100 #<procedure>)
+;; | 100
+;; |(interpret (+ z z) #<procedure>)
+;; | (interpret + #<procedure>)
+;; | #<procedure +>
+;; | (interpret z #<procedure>)
+;; | 100
+;; | (interpret z #<procedure>)
+;; | 100
+;; |200
+;; 200
+
+;;; From this we can see that the interpreter evaluates sub-expressions from left to right.
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;; Exercise 2 (Brynja) ;;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;;; We notice an exponential growth in the overall time, just as we saw in dProgSprog with the towers of
+;;; interpreters. 
+
+
+;;;;;;;;;;;;;;;;;;
+;;; Exercise 3 ;;;
+;;;;;;;;;;;;;;;;;;
+
+;;; If we define mul by using + we don't have to extend the interpreter with anything but subtraction, to
+;;; implement the factorial function in the source language, as can be seen below.
+
+
+;; (define mul
+;;   (lambda (n1_init n2_init)
+;;     (letrec ([visit
+;;               (lambda (n1 n2)
+;;                 (cond
+;;                   [(equal? 0 n1)
+;;                    0]
+;;                   [else
+;;                    (+ n2 (visit (- n1 1) n2))]))])
+;;       (visit n1_init n2_init))))
+
+;; (define fac
+;;   (lambda (n_init)
+;;     (letrec ([visit
+;;               (lambda (n)
+;;                 (cond
+;;                   [(or (equal? 0 n)
+;;                        (equal? 1 n))
+;;                    1]
+;;                   [else
+;;                    (mul n (visit (- n 1)))]))])
+;;       (cond
+;;        [(is-integer? n_init)
+;;         (visit n_init)]
+;;        [else
+;;         (errorf 'fac
+;;                 "not a number: ~s"
+;;                 n_init)]))))
+
+
+;;;;;;;;;;;;;;;;;;
+;;; Exercise 4 ;;;
+;;;;;;;;;;;;;;;;;;
+
+;;; For characters we added the predicate is-char?, the accessor char_0 and extended predefined variables
+;;; and values with these. Finally, we extended interpret with one extra cond-clause for characters.
+
+;;; For string-ref we extended predefined-variables and values with string-ref. 
 
 ;;; end of week-05_self-interpreter-with-solutions.scm
 
