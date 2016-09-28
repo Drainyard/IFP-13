@@ -45,34 +45,55 @@
                                    (visit (cdr ws))))))])
       (visit vs))))
 
-;;; All (p (car ws)) calls in this version are tail calls, but it seems ugly to 
-;;; check whether the remaining list is a singleton every time.
+;;; The (p vn) call is in tail-position, because it is:
+;;; the consequent of an if-expression, which is
+;;; the alternative of an if-expression, which is
+;;; in the body of a lambda-abstraction, which is
+;;; in the body of a letrec-expression, which finally is
+;;; in the body of a lambda-abstraction.
 
-;; (define andmap1-alt
-;;   (lambda (p vs)
-;;     (letrec ([visit (trace-lambda test (ws a)
-;;                       (if (null? ws)
-;;                           (car a)
-;;                           (if (p (car ws))
-;;                               (visit (cdr ws) (cons (p (car ws)) a))
-;;                               #f)))])
-;;       (visit vs '(#t)))))
 
 (define andmap1-alt
   (lambda (p vs)
-    (letrec ([visit (trace-lambda test (ws a)
+    (letrec ([visit (lambda (ws a)
                       (if (or (null? ws)
                               (equal? #f a))
                           a
                           (visit (cdr ws) (and a (p (car ws))))))])
       (visit vs #t))))
 
-;;; In this case the (p (car ws)) calls are not in tail position, so technically
-;;; it doesn't solve the exercise, but we thought it a better idea anyway.
+;;; In this case we keep track of the latest result og applying p and if this 
+;;; was false or the lits of arguments is empty, we return it. The 
+;;; (p (car ws)) calls are not in tail-position though.
+
+(define andmap1-alt-prettier?
+  (lambda (p vs)
+    (letrec ([visit (lambda (ws a)
+                      (cond
+                        [(or (null? ws)
+                              (equal? #f a))
+                         a]
+                        [(pair? ws)
+                          (visit (cdr ws) (and a (p (car ws))))]
+                        [else
+                         (errorf 'andmap1-alt-prettier?
+                                 "Not a proper input list: ~s"
+                                 vs)]))])
+      (visit vs #t))))
+
+;;; It seems to us that the structural recursion is more obvious in this version
 
 
 (unless (test-andmap1 andmap1)
-  (printf "fail: (test-andmap1)~n"))
+  (printf "fail: (test-andmap1 andmap1)~n"))
+
+;;; testing andmap1-alt
+
+(unless (test-andmap1 andmap1-alt)
+  (printf "fail: (test-andmap1 andmap1-alt)~n"))
+
+(unless (test-andmap1 andmap1-alt-prettier?)
+  (printf "fail: (test-andmap1 andmap1-alt-prettier?)~n"))
 
 ;;;;;;;;;;
 
@@ -96,21 +117,39 @@
          )))
 
 ;;; The first test should evaluate to false because applying or to zero
-;;; arguments yields false
+;;; arguments yields false.
 
 (define ormap1
   (lambda (p vs)
     (letrec ([visit (lambda (ws)
-                      (if (null? ws)
-                          #f
-                          (if (null? (cdr ws))
+                      (cond 
+                        [(null? ws)
+                         #f]
+                        [(pair? ws)
+                         (if (null? (cdr ws))
                               (p (car ws))
                               (or (p (car ws))
-                                  (visit (cdr ws))))))])
+                                  (visit (cdr ws))))]
+                        [else
+                         (errorf 'ormap1
+                                 "Not a proper input list: ~s"
+                                 vs)]))])
       (visit vs))))
 
+
+;;; The (p vn) call is in tail-position, since it is:
+;;; the consequent of an if-expression, which is
+;;; the consequent of a cond-expression, which is
+;;; in the body of a lambda-abstraction, which is
+;;; in the body of a letrec-expression, which finally is
+;;; in the body of a lambda-abstraction.
+
+
+;;; Testing ormap
+
 (unless (test-ormap1 ormap1)
-  (printf "fail: (test-ormap1)~n"))
+  (printf "fail: (test-ormap1 ormap1) ~n"))
+
 
 ;;;;;;;;;;
 
