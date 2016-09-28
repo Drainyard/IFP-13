@@ -1,13 +1,197 @@
-
-
-;;; week-03_the-40-optimizing-compilers.scm
+;;; week-04_splitting-continuations.scm
 ;;; IFP 2016-2017, Q1
 ;;; Olivier Danvy <danvy@cs.au.dk>
-;;; Version of 13 Sep 2016
+;;; Version of 20 Sep 2016 (corrected)
 
-;;; Accompanying material for the lecture note at
-;;;   https://users-cs.au.dk/danvy/IFP16/Lecture-notes/the-40-optimizing-compilers.html
+;;;;;;;;;;
 
+(define try-candidate
+  (lambda (name candidate expected-output . input)
+    (or (equal? expected-output
+                (apply candidate input))
+        (begin
+          (printf "~s: error for ~s~n" name input)
+          #f))))
+
+(define and-all
+  (lambda bs_init
+    (letrec ([visit (lambda (bs)
+                      (or (null? bs)
+                          (and (car bs)
+                               (visit (cdr bs)))))])
+      (visit bs_init))))
+
+;;;;;;;;;;
+
+(define test-well-balanced
+  (lambda (candidate)
+    (and-all ;;; some positive tests:
+             (try-candidate 'test-well-balanced
+                            candidate
+                            #t
+                            1)
+             (try-candidate 'test-well-balanced
+                            candidate
+                            #t
+                            (cons 1
+                                  1))
+             (try-candidate 'test-well-balanced
+                            candidate
+                            #t
+                            (cons (cons 1
+                                        1)
+                                  2))
+             ;;; and some negative tests:
+             (try-candidate 'test-well-balanced
+                            candidate
+                            #f
+                            (cons (cons 1
+                                        1)
+                                  3))
+             ;;; etc.
+             )))             
+
+;;;;;;;;;;
+
+(define well-balanced?_v0
+  (lambda (v_init)
+    (letrec ([visit (lambda (v)
+                      (cond
+                        [(number? v)
+                         (if (>= v 0)
+                             v
+                             (errorf 'well-balanced?_v0
+                                     "not a proper mobile: ~s"
+                                     v))]
+                        [(pair? v)
+                         (let ([v1 (visit (car v))])
+                           (if v1
+                               (let ([v2 (visit (cdr v))])
+                                  (if v2
+                                      (if (= v1 v2)
+                                          (+ v1 v2)
+                                          #f)
+                                      #f))
+                               #f))]
+                        [else
+                         (errorf 'well-balanced?_v0
+                                 "improper input ~s"
+                                 v)]))])
+      (number? (visit v_init)))))
+
+(unless (test-well-balanced well-balanced?_v0)
+  (printf "fail: (test-well-balanced well-balanced?_v0)~n"))
+
+;;;;;;;;;;
+
+(define well-balanced?_v1
+  (lambda (v_init)
+    (letrec ([visit (lambda (v k)
+                      (cond
+                        [(number? v)
+                         (if (>= v 0)
+                             (k v)
+                             (errorf 'well-balanced?_v1
+                                     "not a proper mobile: ~s"
+                                     v))]
+                        [(pair? v)
+                         (visit (car v)
+                                (lambda (v1)
+                                  (if v1
+                                      (visit (cdr v)
+                                             (lambda (v2)
+                                               (if v2
+                                                   (if (= v1 v2)
+                                                       (k (+ v1 v2))
+                                                       (k #f))
+                                                   (k #f))))
+                                      (k #f))))]
+                        [else
+                         (errorf 'well-balanced?_v1
+                                 "improper input ~s"
+                                 v)]))])
+      (visit v_init (lambda (v) (number? v))))))
+
+(unless (test-well-balanced well-balanced?_v1)
+  (printf "fail: (test-well-balanced well-balanced?_v1)~n"))
+
+;;;;;;;;;;
+
+(define well-balanced?_v2
+  (lambda (v_init)
+    (letrec ([visit (lambda (v kn kb)
+                      (cond
+                        [(number? v)
+                         (if (> v 0)
+                             (kn v)
+                             (errorf 'well-balanced?_v2
+                                     "not a proper mobile: ~s"
+                                     v))]
+                        [(pair? v)
+                         (visit (car v)
+                                (lambda (n1)
+                                  (visit (cdr v)
+                                         (lambda (n2)
+                                           (if (= n1 n2)
+                                               (kn (+ n1 n2))
+                                               (kb)))
+                                         (lambda ()
+                                           (kb))))
+                                (lambda ()
+                                  (kb)))]
+                        [else
+                         (errorf 'well-balanced?_v2
+                                 "improper input ~s"
+                                 v)]))])
+      (visit v_init (lambda (n) #t) (lambda () #f)))))
+
+(unless (test-well-balanced well-balanced?_v2)
+  (printf "fail: (test-well-balanced well-balanced?_v2)~n"))
+
+(define fold-right_binary_tree
+  (lambda (case-number case-pair case-else)
+    (lambda (v_init)
+      (letrec ([visit (lambda (v)
+                        (cond
+                          [(number? v)
+                           (case-number v)]
+                          [(pair? v)
+                           (case-pair (visit (car v))
+                                      (visit (cdr v)))]  
+                          [else
+                           (case-else v)]))])
+        (visit v_init)))))
+
+(define well-balanced?_v2_fold
+  (lambda (v_init)
+    (((fold-right_binary_tree
+      (lambda (v)
+        (lambda (kn kb)
+          (if (> v 0)
+              (kn v)
+              (errorf 'well-balanced?_v2
+                      "not a proper mobile: ~s"
+                      v))))
+      (lambda (v1 v2)
+        (lambda (kn kb)
+          (v1
+           (lambda (n1)
+             (v2
+              (lambda (n2)
+                (if (= n1 n2)
+                    (kn (+ n1 n2))
+                    (kb)))
+              (lambda ()
+                (kb))))
+           (lambda ()
+             (kb)))))
+      (lambda (e)
+        (errorf 'well-balanced?_v2_fold
+                "Oh no!!!!: ~s"
+                e))) v_init) (lambda (n) #t) (lambda () #f))))
+
+;;;;;;;;;;
+;;; Exercise 9
 ;;;;;;;;;;
 
 (load "ae-sample.scm")
@@ -1697,7 +1881,123 @@
 
 
 ;;;;;;;;;;;;;;;;;;;;
+;;; Exercise 9
+;;;;;;;;;;;;;;;;;;;;
 
-;;; end of week_03_the-40-optimizing-compilers.scm
+;;; To construct this monster, we first looked at each case, literal, plus and times,
+;;; and went through each continuation that the local recursive procedure should take.
+;;; Our basecase is basically the identity function. The rest are the matematical rules
+;;; for the neutral elements, and the absorbing element, and every other number.
 
-"week_03_the-40-optimizing-compilers.scm"
+
+(define interpret-arithmetic-expression_Magritte_surprising_kont
+  (lambda (v_init)
+    (letrec ([visit 
+              (lambda (v k0 k1 ke)
+                (cond
+                  [(is-literal? v)
+                   (let ([x (literal-1 v)])
+                     (cond 
+                       [(= 0 x)
+                        (k0)]
+                       [(= 1 x)
+                        (k1)]
+                       [else (ke (make-literal x))]))]
+                  [(is-plus? v)
+                   (let ([x (plus-1 v)]
+                         [y (plus-2 v)])
+                     (visit x 
+                            (lambda () 
+                              (visit y k0 k1 ke))
+                            (lambda () 
+                              (visit y 
+                                     k1
+                                     (lambda () 
+                                       (ke (make-plus (make-literal 1)
+                                                      (make-literal 1))))
+                                     (lambda (ty) 
+                                       (ke (make-plus (make-literal 1) ty)))))
+                            (lambda (t) 
+                              (visit y
+                                     (lambda () (ke t))
+                                     (lambda () 
+                                       (ke (make-plus t (make-literal 1))))
+                                     (lambda (ty) 
+                                       (ke (make-plus t ty)))))))]
+                  [(is-times? v)
+                   (let ([x (times-1 v)]
+                         [y (times-2 v)])
+                     (visit x 
+                            k0
+                            (lambda () 
+                              (visit y k0 k1 ke))
+                                     (lambda (t) 
+                              (visit y
+                                     k0
+                                     (lambda () (ke t))
+                                     (lambda (ty) (ke (make-times t ty)))))))]
+                  [else 
+                   (errorf 
+                    'interpret-arithmetic-expression_Magritte_surprising_kont
+                    "unrecognized arithmetic expression: ~s"
+                    v)]))])
+      (visit v_init 
+             (lambda () (make-literal 0))
+             (lambda () (make-literal 1))
+             (lambda (x)  x)))))
+
+(define test-surprising-Magritte-interpreter_kont
+  (lambda ()
+    (andmap (lambda (ae)
+              (syntax-check-surprising
+               (interpret-arithmetic-expression_Magritte_surprising_kont
+                 (parse-arithmetic-expression
+                  ae))))
+            sample-of-arithmetic-expressions)))
+
+
+;;; ***
+;;; Uncomment the following lines to test your implementation when loading this file:
+(unless (test-surprising-Magritte-interpreter_kont)
+  (printf "(test-surprising-Magritte-interpreter_kont) failed~n"))
+
+;;;;;;;;;;
+
+(define is_interpret-arithmetic-expression_Magritte_surprising_kont_idempotent?
+  (lambda (source-ae)
+    (let* ([ae (parse-arithmetic-expression source-ae)]
+           [ae_optimized (interpret-arithmetic-expression_Magritte_surprising_kont ae)])
+      (equal? ae_optimized
+              (interpret-arithmetic-expression_Magritte_surprising_kont ae_optimized)))))
+
+(define test_is_interpret-arithmetic-expression_Magritte_surprising_kont_idempotent?
+  (lambda ()
+    (andmap is_interpret-arithmetic-expression_Magritte_surprising_kont_idempotent?
+            sample-of-arithmetic-expressions)))
+
+;;; ***
+;;; Uncomment the following lines to test your implementation when loading this file:
+(unless (test_is_interpret-arithmetic-expression_Magritte_surprising_kont_idempotent?)
+  (printf "fail: (test_is_interpret-arithmetic-expression_Magritte_surprising_kont_idempotent?)~n"))
+
+(define does_interpret-arithmetic-expression_Magritte_surprising_kont_make_the_diagram_commute?
+  (lambda (source-ae)
+    (let ([ae (parse-arithmetic-expression source-ae)])
+      (equal? (interpret-arithmetic-expression_Magritte_surprising_kont ae)
+              (compile-and-run-arithmetic-expression_Magritte_surprising ae)))))
+
+(define test_does_interpret-arithmetic-expression_Magritte_surprising_kont_make_the_diagram_commute?
+  (lambda ()
+    (andmap does_interpret-arithmetic-expression_Magritte_surprising_kont_make_the_diagram_commute?
+            sample-of-arithmetic-expressions)))
+
+;;; ***
+;;; Uncomment the following lines to test your implementation when loading this file:
+(unless (test_does_interpret-arithmetic-expression_Magritte_surprising_kont_make_the_diagram_commute?)
+  (printf "fail: (test_does_interpret-arithmetic-expression_Magritte_surprising_kont_make_the_diagram_commute?)~n"))
+
+;;;;;;;;;;
+
+;;; end of week-04_splitting-continuations.scm
+
+"week-04_splitting-continuations.scm"
