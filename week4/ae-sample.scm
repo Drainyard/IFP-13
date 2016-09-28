@@ -97,6 +97,9 @@
 (define source-ae25
   '(+ 1 (+ 1 (+ 1 (+ 1 (+ 1 1))))))
 
+(define source-ae26
+  '(+ (* 0 42) (* 42 (+ 0 0))))
+
 ;;;;;;;;;;
 
 (define sample-of-arithmetic-expressions

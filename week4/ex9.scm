@@ -1715,7 +1715,7 @@
 (define interpret-arithmetic-expression_Magritte_surprising
   (lambda (v_init)
     (letrec ([visit 
-              (lambda (v)
+              (trace-lambda Original (v)
                 (cond
                   [(is-literal? v)
                    (make-literal (literal-1 v))]
@@ -1781,8 +1781,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-(unless (test_does_interpret-arithmetic-expression_Magritte_surprising_make_the_diagram_commute?)
-  (printf "fail: (test_does_interpret-arithmetic-expression_Magritte_surprising_make_the_diagram_commute?)~n"))
+;; (unless (test_does_interpret-arithmetic-expression_Magritte_surprising_make_the_diagram_commute?)
+;;   (printf "fail: (test_does_interpret-arithmetic-expression_Magritte_surprising_make_the_diagram_commute?)~n"))
 
 ;;;;;;;;;;
 
@@ -1800,8 +1800,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-(unless (test-surprising-Magritte-interpreter)
-  (printf "(test-surprising-Magritte-interpreter) failed~n"))
+;; (unless (test-surprising-Magritte-interpreter)
+;;   (printf "(test-surprising-Magritte-interpreter) failed~n"))
 
 ;;;;;;;;;;
 
@@ -1819,8 +1819,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-(unless (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)
-  (printf "fail: (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)~n"))
+;; (unless (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)
+;;   (printf "fail: (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)~n"))
 
 ;;;;;;;;;;
 
@@ -1884,11 +1884,97 @@
 ;;; Exercise 9
 ;;;;;;;;;;;;;;;;;;;;
 
-;;; To construct this monster, we first looked at each case, literal, plus and times,
-;;; and went through each continuation that the local recursive procedure should take.
-;;; Our basecase is basically the identity function. The rest are the matematical rules
-;;; for the neutral elements, and the absorbing element, and every other number.
+;;; To construct this monster, we started by considering only plus-trees and how
+;;; to treat these. We knew that we were supposed to end up with three 
+;;; continuations, two nullary ones for intermediate results of 0 and 1 
+;;; respectively and a unary one for all other results. So we called these 
+;;; continuations k0, k1 and ke (e for else). 
+;;; At a plus node n=(+ x y), the tree is buildt by the continuations as 
+;;; follows:
+;;; If the result of visiting x is 0, n is replaced by the tree resulting from
+;;; visiting y with the same continuations as before
+;;; If the result of visiting x is 1, the only possible simplification happens
+;;; if the result of visiting y is 0, in which case k1 will be able to construct
+;;; the tree that should replace n
+;;; If neither x nor y are 0, we will have to extend the continuations with the 
+;;; information needed to build the correct tree
+;;;
+;;; We wrote this as code and tried in on some plus-only trees before we moved
+;;; on to times nodes, which turned out to be simpler than plus in this case,
+;;; since there are more possible simplifications.
+;;;
+;;; We did not trace the visit calls at any point, we just tried the tests and
+;;; looked closer at the samples that failed until none did.
 
+;;; The way the complete function works can be seen in the following trace:
+
+;; > (define test '(+ (+ (+ 42 0) (* 0 42)) 0))
+;; > (interpret-arithmetic-expression_Magritte_surprising_kont (parse-arithmetic-expression test))
+;; |(LetsSee
+;;    (plus
+;;      (plus (plus (literal 42) (literal 0)) (times (literal 0) (literal 42)))
+;;      (literal 0))
+;;    #<procedure>
+;;    #<procedure>
+;;    #<procedure>)
+;; |(LetsSee
+;;    (plus (plus (literal 42) (literal 0)) (times (literal 0) (literal 42)))
+;;    #<procedure>
+;;    #<procedure>
+;;    #<procedure>)
+;; |(LetsSee
+;;    (plus (literal 42) (literal 0))
+;;    #<procedure>
+;;    #<procedure>
+;;    #<procedure>)
+;; |(LetsSee (literal 42) #<procedure> #<procedure> #<procedure>)
+;; |(LetsSee (literal 0) #<procedure> #<procedure> #<procedure>)
+;; |(LetsSee
+;;    (times (literal 0) (literal 42))
+;;    #<procedure>
+;;    #<procedure>
+;;    #<procedure>)
+;; |(LetsSee (literal 0) #<procedure> #<procedure> #<procedure>)
+;; |(LetsSee (literal 0) #<procedure> #<procedure> #<procedure>)
+;; |(literal 42)
+;; (literal 42)
+
+;;; As illustrated by the trace, the interpreter works its way into the left 
+;;; sub-tree first (all the while extending the continuations) until it reaches
+;;; a node. Following, it looks at the right sub-trees, starting with the 
+;;; innermost one and working upwards. If a right sub-tree is a tree by itself,
+;;; evaluation is started at the left branch again. If the left branch of a 
+;;; times node is 0, the right branch is discarded without further evaluation.
+;;; Since this procedure is written with continuations, there is always only 
+;;; one level of calls.
+;;; Interpreting the same arithmetic expression without continuations would
+;;; look as follows:
+
+;; > (interpret-arithmetic-expression_Magritte_surprising (parse-arithmetic-expression test))
+;; |(Original
+;;    (plus
+;;      (plus (plus (literal 42) (literal 0)) (times (literal 0) (literal 42)))
+;;      (literal 0)))
+;; | (Original
+;;     (plus (plus (literal 42) (literal 0)) (times (literal 0) (literal 42))))
+;; | |(Original (plus (literal 42) (literal 0)))
+;; | | (Original (literal 42))
+;; | | (literal 42)
+;; | | (Original (literal 0))
+;; | | (literal 0)
+;; | |(literal 42)
+;; | |(Original (times (literal 0) (literal 42)))
+;; | | (Original (literal 0))
+;; | | (literal 0)
+;; | |(literal 0)
+;; | (literal 42)
+;; | (Original (literal 0))
+;; | (literal 0)
+;; |(literal 42)
+;; (literal 42)
+
+;;; As can be seen above, there are two levels of procedures for most of the 
+;;; evaluation.
 
 (define interpret-arithmetic-expression_Magritte_surprising_kont
   (lambda (v_init)
