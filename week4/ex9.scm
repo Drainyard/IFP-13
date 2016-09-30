@@ -1715,7 +1715,7 @@
 (define interpret-arithmetic-expression_Magritte_surprising
   (lambda (v_init)
     (letrec ([visit 
-              (trace-lambda Original (v)
+              (lambda (v)
                 (cond
                   [(is-literal? v)
                    (make-literal (literal-1 v))]
@@ -1781,8 +1781,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;; (unless (test_does_interpret-arithmetic-expression_Magritte_surprising_make_the_diagram_commute?)
-;;   (printf "fail: (test_does_interpret-arithmetic-expression_Magritte_surprising_make_the_diagram_commute?)~n"))
+(unless (test_does_interpret-arithmetic-expression_Magritte_surprising_make_the_diagram_commute?)
+  (printf "fail: (test_does_interpret-arithmetic-expression_Magritte_surprising_make_the_diagram_commute?)~n"))
 
 ;;;;;;;;;;
 
@@ -1800,8 +1800,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;; (unless (test-surprising-Magritte-interpreter)
-;;   (printf "(test-surprising-Magritte-interpreter) failed~n"))
+(unless (test-surprising-Magritte-interpreter)
+  (printf "(test-surprising-Magritte-interpreter) failed~n"))
 
 ;;;;;;;;;;
 
@@ -1819,8 +1819,8 @@
 
 ;;; ***
 ;;; Uncomment the following lines to test your implementation when loading this file:
-;; (unless (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)
-;;   (printf "fail: (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)~n"))
+(unless (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)
+  (printf "fail: (test_is_interpret-arithmetic-expression_Magritte_surprising_idempotent?)~n"))
 
 ;;;;;;;;;;
 
