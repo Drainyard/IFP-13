@@ -146,7 +146,7 @@
                             nil-case]
                           [(pair? ws)
                            (cons-case (car ws)
-                                       (visit (cdr ws)))]
+                                      (visit (cdr ws)))]
                           [else
                            (errorf 'fold-right_proper-list
                                    "Not a proper list: ~s"
@@ -314,9 +314,24 @@
                  '((a . 1) (b . 2) (c . 3)))
          (equal? (candidate '(a b b c c c a a a a a a))
                  '((a . 1) (b . 2) (c . 3) (a . 6)))
+         (equal? (candidate '(a a a a a a b b c c c a))
+                 '((a . 6) (b . 2) (c . 3) (a . 1)))
+         (equal? (candidate '(a b b c c c c c c c c c b b a))
+                 '((a . 1) (b . 2) (c . 9) (b . 2) (a . 1)))
+         (equal? (candidate '(c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c c))
+                 '((c . 42)))
          ;;; etc.
          )))
 
+;;; We added a test where the counters do not increase throughout the result 
+;;; and one with a lot of a single element.
+
+;;; It seems like the recursion needed for this exercise is the same kind as 
+;;; the last one, e.g. it is easiest to compute the result bottom-up.
+;;; Since we know that the result of the visit call is a well-formed result
+;;; of run-length on the remaining list (e.g. either null or a list of pairs), 
+;;; we can, after having checked whether it is null, access it with cdar and 
+;;; cdr.
 
 (define run-length
   (lambda (xs_init)
@@ -325,14 +340,58 @@
                         [(null? xs)
                          '()]
                         [(pair? xs)
-                         ]
+                         (let ([x (car xs)])
+                           (if (symbol? x)
+                               (let ([r (visit (cdr xs))])
+                                 (cond
+                                   [(null? r)
+                                    (list (cons x 1))]
+                                   [else
+                                    (if (equal? x (caar r))
+                                        (cons (cons x (1+ (cdar r))) (cdr r))
+                                        (cons (cons x 1) r))]))
+                               (errorf 'run-length
+                                       "Not a symbol: ~s"
+                                       x)))]
                         [else
                          (errorf 'run-length
                                  "Not a proper list: ~s"
                                  xs_init)]))])
              (visit xs_init))))
 
+(unless (test-run-length run-length)
+  (printf "(fail: (test-run-length run-length) ~n"))
 
+;;; We don't see how this procedure should be lambda-dropped more than it 
+;;; already is. This question seems to make more sense with regard to Exercise
+;;; 10, where one could omit p in all but the outermost lambda.
+
+;;; Again, it is very straight-forward to write a fold-right version from this
+;;; one, since the entire structure is the same, fold-right just abstracts the
+;;; let bindings for us.
+
+(define run-length_fold
+  (lambda (xs_init)
+    ((fold-right_proper-list
+      '()
+      (lambda (x r)
+        (if (symbol? x)
+            (cond
+              [(null? r)
+               (list (cons x 1))]
+              [else
+               (if (equal? x (caar r))
+                   (cons (cons x (1+ (cdar r))) (cdr r))
+                   (cons (cons x 1) r))])
+            (errorf 'run-length_fold
+                    "Not a symbol: ~s"
+                    x)
+            ))) xs_init)))
+
+
+
+(unless (test-run-length run-length_fold)
+  (printf "(fail: (test-run-length run-length_fold) ~n"))
 ;;;;;;;;;;
 
 
