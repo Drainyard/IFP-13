@@ -953,6 +953,13 @@
 
 ;;; We notice an exponential growth in the overall time, just as we saw in dProgSprog with the towers of
 ;;; interpreters. 
+;;; The growth is much larger in call-by-name than in the other two. This is due
+;;; to the fact that every argument is evaluated anew each time it is 
+;;; encountered. The other two strategies remember the value of a given argument
+;;; after having evaluated it (at most) once. With more layers of interpreters,
+;;; the time saved for every evaluation becomes significant, which results in 
+;;; call-by-need becoming faster than call-by-value, since arguments that are
+;;; never used, are not evaluated.
 
 
 ;;;;;;;;;;;;;;;;;;
