@@ -575,6 +575,9 @@
     string-ref
     +
     -
+    *
+    >=
+    fac
     ;;; etc.
     ))
 
@@ -643,6 +646,9 @@
         string-ref
         +
         -
+        *
+        >=
+        fac
         ;;; etc.
         ))
 
@@ -945,7 +951,30 @@
 ;; |200
 ;; 200
 
-;;; From this we can see that the interpreter evaluates sub-expressions from left to right.
+;; > (interpret '((lambda (x y z t) (+ z z)) 1 10 100 1000))
+;;   |(eval ((lambda (x y z t) (+ z z)) 1 10 100 1000) #<procedure>)
+;;   | (eval (lambda (x y z t) (+ z z)) #<procedure>)
+;;   | #<procedure>
+;;   | (eval 1000 #<procedure>)
+;;   | 1000
+;;   | (eval 100 #<procedure>)
+;;   | 100
+;;   | (eval 10 #<procedure>)
+;;   | 10
+;;   | (eval 1 #<procedure>)
+;;   | 1
+;;   |(eval (+ z z) #<procedure>)
+;;   | (eval + #<procedure>)
+;;   | #<procedure +>
+;;   | (eval z #<procedure>)
+;;   | 100
+;;   | (eval z #<procedure>)
+;;   | 100
+;;   |200
+;;   200
+;;   > 
+
+;;; From this we can see that the interpreter evaluates sub-expressions in an unspecified order.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Exercise 2 (Brynja) ;;;
@@ -966,38 +995,29 @@
 ;;; Exercise 3 ;;;
 ;;;;;;;;;;;;;;;;;;
 
-;;; If we define mul by using + we don't have to extend the interpreter with anything but subtraction, to
-;;; implement the factorial function in the source language, as can be seen below.
+;;; If we define 
 
-
-;; (define mul
-;;   (lambda (n1_init n2_init)
-;;     (letrec ([visit
-;;               (lambda (n1 n2)
-;;                 (cond
-;;                   [(equal? 0 n1)
-;;                    0]
-;;                   [else
-;;                    (+ n2 (visit (- n1 1) n2))]))])
-;;       (visit n1_init n2_init))))
-
-;; (define fac
-;;   (lambda (n_init)
-;;     (letrec ([visit
-;;               (lambda (n)
-;;                 (cond
-;;                   [(or (equal? 0 n)
-;;                        (equal? 1 n))
-;;                    1]
-;;                   [else
-;;                    (mul n (visit (- n 1)))]))])
-;;       (cond
-;;        [(is-integer? n_init)
-;;         (visit n_init)]
-;;        [else
-;;         (errorf 'fac
-;;                 "not a number: ~s"
-;;                 n_init)]))))
+(define fac
+  (lambda (n_init)
+    (letrec ([visit
+              (lambda (n)
+                (cond
+                  [(or (equal? 0 n)
+                       (equal? 1 n))
+                   1]
+                  [else
+                   (* n (visit (- n 1)))]))])
+      (cond
+        [(is-integer? n_init)
+         (if (>= n_init 0)
+             (visit n_init)
+             (errorf 'fac
+                     "not a non-negative number: ~s"
+                     n_init))]
+       [else
+        (errorf 'fac
+                "not a number: ~s"
+                n_init)]))))
 
 
 ;;;;;;;;;;;;;;;;;;
