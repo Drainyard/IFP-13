@@ -154,7 +154,7 @@
          ;;; etc.
          )))
 
-;;; The test cases are the same as for ormap, since the correct input to ormap1
+;;; The test cases are the same as for andmap, since the correct input to ormap1
 ;;; is the same as to andmap1.
 ;;; The procedure itself is also written in much the same way as andmap1, except
 ;;; for the fact that we check whether the input list is proper list in the 

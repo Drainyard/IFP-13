@@ -109,26 +109,59 @@
 (define lengths-of-all-distinct-paths_acc
   (lambda (v_init)
     (letrec ([visit (lambda (v n a)
-                      (cond
-                        [(is-leaf? v)
-                         (cons n a)]
-                        [(is-node? v)
-                         (cons n (visit (node-1 v)
+                      (cons n (cond
+                                [(is-leaf? v)
+                                 a]
+                                [(is-node? v)
+                                 (visit (node-1 v)
                                         (1+ n)
                                         (visit
                                          (node-2 v)
                                          (1+ n)
-                                         a)))]
-                        [else
-                         (errorf 'lengths-of-all-distinct-paths_acc
-                                 "not a binary tree: ~s"
-                                 v)]))])
+                                         a))]
+                                [else
+                                 (errorf 'lengths-of-all-distinct-paths_acc
+                                         "not a binary tree: ~s"
+                                         v)])))])
       (visit v_init 0 '()))))
+
 
 
 (unless (test-lengths-of-all-distinct-paths lengths-of-all-distinct-paths_acc)
   (printf "fail: (test-lengths-of-all-distinct-paths lengths-of-all-distinct-paths_acc)~n"))
 
+(define fold-right_binary-tree
+  (lambda (lea nod err)
+    (lambda (v_init)
+      (letrec ([visit (lambda (v)
+                        (cond
+                          [(number? v)
+                           (lea v)]
+                          [(pair? v)
+                           (nod (visit (car v))
+                                (visit (cdr v)))]
+                          [else
+                           (err v)]))])
+        (visit v_init)))))
+
+;;; By popular demand, now also a version with fold-right.
+
+(define lengths-of-all-distinct-paths_fold
+  (lambda (v_init)
+    (((fold-right_binary-tree
+       (lambda (v)
+         (lambda (n a)
+           (cons n a)))
+       (lambda (v1 v2)
+         (lambda (n a)
+           (cons n (v1 (1+ n) (v2 (1+ n) a)))))
+       (lambda (v)
+         (errorf 'lengths-of-all-distinct-paths_fold
+                 "not a binary tree: ~s"
+                 v))) v_init) 0 '())))
+
+(unless (test-lengths-of-all-distinct-paths lengths-of-all-distinct-paths_fold)
+  (printf "fail: (test-lengths-of-all-distinct-paths lengths-of-all-distinct-paths_fold)~n"))
 
 ;;;;;;;;;;;;;;;;;;;
 ;;; Exercise 10 ;;;
@@ -138,7 +171,7 @@
 ;;; week 5 in order to make raising errors easier
 
 (define fold-right_proper-list
-  (lambda (nil-case cons-case)
+  (lambda (nil-case cons-case else-case)
     (lambda (vs)
       (letrec ([visit (lambda (ws)
                         (cond
@@ -148,9 +181,7 @@
                            (cons-case (car ws)
                                       (visit (cdr ws)))]
                           [else
-                           (errorf 'fold-right_proper-list
-                                   "Not a proper list: ~s"
-                                   ws)]))])
+                           (else-case ws)]))])
         (visit vs)))))
 
 
@@ -187,7 +218,7 @@
 ;;; results, the input list is reversed to start with. Alternatively, one 
 ;;; could reverse the two result list before returning.
 
-(define Dutch-flag
+(define Dutch-flag_FIRST-draft
   (lambda (xs_init p)
     (letrec ([visit (lambda (xs a1 n a2)
                       (cond 
@@ -212,17 +243,17 @@
                                          a1
                                          (1+ n)
                                          a2)])
-                               (errorf 'Dutch-flag
+                               (errorf 'Dutch-flag_FIRST-draft
                                        "Not a number: ~s"
                                        x)))]
                         [else
-                         (errorf 'Dutch-flag
+                         (errorf 'Dutch-flag_FIRST-draft
                                  "Not a proper list: ~s"
                                  xs_init)]))])
       (visit (reverse xs_init) '() 0 '()))))
 
-(unless (test-Dutch-flag Dutch-flag)
-  (printf "fail: (test-Dutch-flag Dutch-flag)~n"))
+(unless (test-Dutch-flag Dutch-flag_FIRST-draft)
+  (printf "fail: (test-Dutch-flag Dutch-flag_FIRST-draft)~n"))
 
 ;;; Traversing the input twice due to the reverse is of course not the prettiest
 ;;; solution
@@ -237,7 +268,7 @@
     (letrec ([visit (lambda (xs)
                       (cond 
                         [(null? xs)
-                         (list '() 0 '())]
+                         (cons '() (cons 0 (cons '() '())))]
                         [(pair? xs) 
                          (let ([x (car xs)])
                            (if (integer? x)
@@ -246,18 +277,21 @@
                                    [(< x p)
                                     (cons (cons x (car r)) (cdr r))]
                                    [(> x p)
-                                    (list (car r) 
-                                          (cadr r)
-                                          (cons x (caddr r)))]
+                                    (cons (car r) 
+                                          (cons (cadr r)
+                                                (cons (cons x 
+                                                            (caddr r)) 
+                                                      '())))]
                                    [else
-                                    (list (car r) 
-                                          (1+ (cadr r))
-                                          (caddr r))]))
-                               (errorf 'Dutch-flag
+                                    (cons (car r) 
+                                          (cons (1+ (cadr r))
+                                                (cons (caddr r) 
+                                                      '())))]))
+                               (errorf 'Dutch-flag_alt
                                        "Not a number: ~s"
                                        x)))]
                         [else
-                         (errorf 'Dutch-flag
+                         (errorf 'Dutch-flag_alt
                                  "Not a proper list: ~s"
                                  xs_init)]))])
       (visit xs_init))))
@@ -287,9 +321,13 @@
               (list (car r) 
                     (1+ (cadr r))
                     (caddr r))])
-           (errorf 'Dutch-flag
+           (errorf 'Dutch-flag_fold
                    "Not a number: ~s"
-                   x)))) xs_init)))
+                   x)))
+     (lambda (x)
+       (errorf 'Dutch-flag_fold
+               "Not a proper list: ~s"
+               x))) xs_init)))
 
 (unless (test-Dutch-flag Dutch-flag_fold)
   (printf "fail: (test-Dutch-flag Dutch-flag_fold)~n"))
@@ -345,7 +383,7 @@
                                (let ([r (visit (cdr xs))])
                                  (cond
                                    [(null? r)
-                                    (list (cons x 1))]
+                                    (cons (cons x 1) '())]
                                    [else
                                     (if (equal? x (caar r))
                                         (cons (cons x (1+ (cdar r))) (cdr r))
@@ -385,8 +423,12 @@
                    (cons (cons x 1) r))])
             (errorf 'run-length_fold
                     "Not a symbol: ~s"
-                    x)
-            ))) xs_init)))
+                    x)))
+      (lambda (x)
+        (errorf
+         'run-length_fold
+         "Not a proer list: ~s"
+         x))) xs_init)))
 
 
 
