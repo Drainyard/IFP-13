@@ -512,27 +512,56 @@
   (printf "fail: (test-reify-nth-path 'reify-nth-path_a reify-nth-path_a) ~n"))
 
 ;;;;;;;;;;;;;;;;;;;;
-;;; As seen in all the three previous procedures, there are three cases for
-;;; traversing binary trees of proper lists, namely one for a leaves that are 
-;;; the empty list, one for the leaves that are numbers and one for nodes.
-;;; Finally there is an error-case of course.
+;;; Our understanding of a binary tree of numbers constructed with proper lists is that all of these trees
+;;; must, at the very least, be proper lists. This means that they are constructed with nested calls to cons,
+;;; where the right-most call is given the empty list as a second argument. So they are always constructed
+;;; with pairs, which gives the definition of the base-case non-terminal <binary-tree-numbers-proper-list>
+;;; seen below.
+;;; Moreover, the left-most call has to have a number as a first argument in order to result in a binary tree
+;;; of numbers.
+;;; This means we have to differentiate between the left and the right argument of the cons calls.
+;;; All in all we get the following BNF.
+
+;;; <binary-tree-numbers-proper-list>       ::= (<binary-tree-numbers-proper-list-left> .
+;;;                                              <binary-tree-numbers-proper-list-right>)
+;;;
+;;; <binary-tree-numbers-proper-list-left>  ::= <binary-tree-numbers-proper-list>
+;;;                                           | <number>
+;;; <binary-tree-numbers-proper-list-right> ::= <binary-tree-numbers-proper-list>
+;;;                                           | <empty-list>
+
+;;; The BNF is sound because every construct derived from it will be a proper list with numbers as the left-
+;;; most element of every cons call, which is exactly our definition of a binary tree of numbers constructed
+;;; with proper lists.
+;;; Any binary tree of numbers constructed with proper lists can be constructed with nested cons calls with
+;;; numbers as the left-most argument and proper lists as the right-most argument. Therefore the above
+;;; grammar is also complete.
+;;; The below fold is derived from this BNF.
 
 
 (define fold-right_binary-tree-from-proper-lists
   (lambda (nill-case number-case pair-case else-case)
     (lambda (v_init)
-      (letrec ([visit (lambda (v)
-                        (cond
-                          [(null? v)
-                           (nill-case v)]
-                          [(number? v)
-                           (number-case v)]
-                          [(pair? v)
-                           (pair-case (visit (car v))
-                                      (visit (cdr v)))]
-                          [else
-                           (else-case v)]))])
-        (visit v_init)))))
+      (letrec ([visit-base (lambda (v)
+                             (cond
+                               [(pair? v)
+                                (pair-case (visit-left (car v))
+                                           (visit-right (cdr v)))]
+                               [else
+                                (else-case v)]))]
+               [visit-left (lambda (v)
+                             (cond
+                               [(number? v)
+                                (number-case v)]
+                               [else
+                                (visit-base v)]))]
+               [visit-right (lambda (v)
+                              (cond
+                                [(null? v)
+                                 (nill-case v)]
+                                [else
+                                 (visit-base v)]))])
+                           (visit-base v_init)))))
 
 
 ;;; Now we should be able to write new versions of the above procedures:

@@ -202,8 +202,19 @@
                                           xs)]))])
                (append '() '(4 5 6)))
             '(4 5 6))
+      (test candidate
+            representation-of-candidate
+            '(lambda (n_init)
+               (letrec ([fac
+                         (lambda (n)
+                           (if (zero? n)
+                               1
+                               (* n (fac (1- n)))))])
+                 (fac n_init)))
+            5)
+            '120)
       ;;; add more here
-      'done)))
+      'done))
 
 ;;;;;;;;;;
 
