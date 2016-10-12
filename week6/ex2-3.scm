@@ -1,3 +1,19 @@
+(define fold-right_proper-list
+  (lambda (null pair err)
+    (lambda (v_init)
+      (letrec ([visit (lambda (v)
+                        (cond
+                          [(null? v)
+                           null]
+                          [(pair? v)
+                           (pair (car v)
+                                 (visit (cdr v)))]
+                          [else
+                           err]))])
+        (visit v_init)))))
+
+
+
 (define test-Dutch-flag
   (lambda (candidate)
     (and (equal? (candidate '() 10)
@@ -46,10 +62,37 @@
                                  "Not a proper list: ~s"
                                  xs_init)]))])
       (let-values ([(r1 r2 r3) (visit xs_init)])
-        (cons r1 (cons r2 (cons r3 '())))))))
+        (list r1 r2 r3)))))
 
 (unless (test-Dutch-flag Dutch-flag_mul-values)
   (printf "fail: (test-Dutch-flag Dutch-flag_mul-values) ~n"))
+
+(define Dutch-flag_mul-values_fold
+  (lambda (xs_init p)
+    (let-values ([(r1 r2 r3) 
+                  (((fold-right_proper-list
+                    (lambda () (values '() 0 '()))
+                    (lambda (v vs)
+                      (if (integer? v)
+                          (let-values ([(l1 n l2) (vs)])
+                                 (cond 
+                                   [(< v p)
+                                    (lambda () (values (cons v l1) n l2))]
+                                   [(> v p)
+                                    (lambda () (values l1 n (cons v l2)))]
+                                   [else
+                                    (lambda () (values l1 (1+ n) l2))]))
+                          (errorf 'Dutch-flag_mul-values_fold
+                                  "Not a number: ~s"
+                                  v)))
+                    (lambda ()
+                      (errorf 'Dutch-flag_mul-values_fold
+                              "Not a proper list: ~s"
+                              xs_init))) xs_init))])
+      (list r1 r2 r3))))
+                    
+(unless (test-Dutch-flag Dutch-flag_mul-values_fold)
+  (printf "fail: (test-Dutch-flag Dutch-flag_mul-values_fold) ~n"))
 
 
 ;;; run-length
@@ -75,7 +118,7 @@
          )))
 
 
-(define run-length_mult-values
+(define run-length_mul-values
   (lambda (xs_init)
     (letrec ([visit (lambda (xs)
                       (cond
@@ -86,12 +129,12 @@
                            (if (symbol? x)
                                (let-values ([(p1 r) (visit (cdr xs))])
                                  (cond 
-                                   [(null? p1)
-                                    (values (cons x 1) r)]
-                                   [else
+                                   [(pair? p1)
                                     (if (equal? x (car p1))
                                         (values (cons x (1+ (cdr p1))) r)
-                                        (values (cons x 1) (cons p1 r)))]))
+                                        (values (cons x 1) (cons p1 r)))]
+                                   [else
+                                    (values (cons x 1) r)]))
                                (errorf 'run-length_mult-values
                                        "Not a symbol: ~s"
                                        x)))]
@@ -111,7 +154,7 @@
 ;;; since the result in this case has a different structure than the other ones.
 
 
-(unless (test-run-length run-length_mult-values)
-  (printf "fail: (test-run-length run-length_mult-values) ~n"))
+(unless (test-run-length run-length_mul-values)
+  (printf "fail: (test-run-length run-length_mul-values) ~n"))
 
-"ex2.scm"
+"ex2-3.scm"
