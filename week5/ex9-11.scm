@@ -400,7 +400,205 @@
 (unless (test-run-length run-length)
   (printf "(fail: (test-run-length run-length) ~n"))
 
-;;; We don't see how this procedure should be lambda-dropped more than it 
+(define run-length_acc1
+  (lambda (xs_init)
+    (letrec ([visit (lambda (xs a)
+                      (cond
+                        [(null? xs)
+                         a]
+                        [(pair? xs)
+                         (let ([x (car xs)])
+                           (if (symbol? x)
+                               (cond 
+                                 [(null? a)
+                                  (visit (cdr xs) 
+                                         (cons (cons x 1) a))]
+                                 [(pair? a)
+                                  (if (equal? x (caar a))
+                                      (visit (cdr xs) 
+                                             (cons (cons x 
+                                                         (1+ (cdar a))) 
+                                                   (cdr a)))
+                                      (visit (cdr xs)
+                                             (cons (cons x 1) a)))])
+                                  (errorf 'run-length
+                                          "Not a symbol: ~s"
+                                          x)))]
+                        [else
+                         (errorf 'run-length
+                                 "Not a proper list: ~s"
+                                 xs_init)]))])
+             (reverse (visit xs_init '())))))
+
+
+
+(unless (test-run-length run-length_acc1)
+  (printf "(fail: (test-run-length run-length_acc1) ~n"))
+
+;;; We know that the above version is NOT what is expected (due to the reverse),
+;;; but we were asked to account for our thoughts, so there you go.
+
+
+(define run-length_acc2
+  (lambda (xs_init)
+    (letrec ([visit (lambda (xs as a)
+                      (cond
+                        [(null? xs)
+                         (append as a)]
+                        [(pair? xs)
+                         (let ([x (car xs)])
+                           (if (symbol? x)
+                               (cond 
+                                 [(null? a)
+                                  (visit (cdr xs) 
+                                         as
+                                         (cons (cons x 1) a))]
+                                 [(pair? a)
+                                  (if (equal? x (caar a))
+                                      (visit (cdr xs) 
+                                             as
+                                             (cons (cons x 
+                                                   (1+ (cdar a))) '()))
+                                      (visit (cdr xs)
+                                             (append as a)
+                                             (cons (cons x 1) '())))])
+                               (errorf 'run-length
+                                       "Not a symbol: ~s"
+                                       x)))]
+                        [else
+                         (errorf 'run-length
+                                 "Not a proper list: ~s"
+                                 xs_init)]))])
+             (visit xs_init '() '()))))
+
+
+(unless (test-run-length run-length_acc2)
+  (printf "(fail: (test-run-length run-length_acc2) ~n"))
+
+
+;;; This version uses an accumulator and an extra variable for the last letter
+;;; in the input list. It is probably still not the intended solution, since
+;;; it builds the result by using append. 
+
+(define run-length_acc3
+  (lambda (xs_init)
+    (letrec ([visit (lambda (xs a sym n)
+                      (cond
+                        [(null? xs)
+                         (if (not sym)
+                             '()
+                             (append a (list (cons sym n))))]
+                        [(pair? xs)
+                         (let ([x (car xs)])
+                           (if (symbol? x)
+                               (cond 
+                                 [(not (symbol? sym))
+                                  (visit (cdr xs) 
+                                         a
+                                         x
+                                         1)]
+                                 [(symbol? sym)
+                                  (if (equal? x sym)
+                                      (visit (cdr xs) 
+                                             a
+                                             x
+                                             (1+ n))
+                                      (visit (cdr xs)
+                                             (append a (list (cons sym n)))
+                                             x
+                                             1))])
+                               (errorf 'run-length
+                                       "Not a symbol: ~s"
+                                       x)))]
+                        [else
+                         (errorf 'run-length
+                                 "Not a proper list: ~s"
+                                 xs_init)]))])
+             (visit xs_init '() #f 0))))
+
+(unless (test-run-length run-length_acc3)
+  (printf "(fail: (test-run-length run-length_acc3) ~n"))
+
+
+(define run-length_acc4
+  (lambda (xs_init)
+    (letrec ([visit (lambda (xs a)
+                      (cond
+                        [(null? xs)
+                         (if (null? a)
+                             '()
+                             (list a))]
+                        [(pair? xs)
+                         (let ([x (car xs)])
+                           (if (symbol? x)
+                               (if (pair? a)
+                                  (if (equal? x (car a))
+                                      (visit (cdr xs) 
+                                             (cons x 
+                                                   (1+ (cdr a))))
+                                      (cons a (visit (cdr xs)
+                                                     (cons x 1))))
+                                  (visit (cdr xs) 
+                                             (cons x 1)))
+                               (errorf 'run-length
+                                       "Not a symbol: ~s"
+                                       x)))]
+                        [else
+                         (errorf 'run-length
+                                 "Not a proper list: ~s"
+                                 xs_init)]))])
+             (visit xs_init '()))))
+
+
+(unless (test-run-length run-length_acc4)
+  (printf "(fail: (test-run-length run-length_acc4) ~n"))
+
+;;; This version only has n non-tail-recursive visit calls, as required. We are
+;;; not sure about the allocated cons pairs, since we are not sure we understand
+;;; your comment correctly.
+
+(define run-length_acc-final
+  (lambda (xs_init)
+    (letrec ([visit (lambda (xs sym n)
+                      (cond
+                        [(null? xs)
+                         (if (not sym)
+                             '()
+                             (list (cons sym n)))]
+                        [(pair? xs)
+                         (let ([x (car xs)])
+                           (if (symbol? x)
+                               (if sym
+                                   (if (equal? x sym)
+                                       (visit (cdr xs) 
+                                              sym 
+                                              (1+ n))
+                                       (cons (cons sym n)
+                                             (visit (cdr xs) x 1)))
+                                   (visit (cdr xs) x 1))
+                               (errorf 'run-length
+                                       "Not a symbol: ~s"
+                                       x)))]
+                        [else
+                         (errorf 'run-length
+                                 "Not a proper list: ~s"
+                                 xs_init)]))])
+             (visit xs_init #f 0))))
+
+(unless (test-run-length run-length_acc-final)
+  (printf "(fail: (test-run-length run-length_acc-final) ~n"))
+
+
+;;; This one is a combination of version 3 and 4 and our best candidate for the
+;;; issued challenge. All visit calls, except for the ones where we have to add
+;;; a new pair so the result, are tail calls. These and the base case are also 
+;;; the only times we call cons, which will result in at most 2n (as we see it 
+;;; 2n-1) calls, as required. It does not really use an accumulator as such 
+;;; though.
+
+;;; This version is pretty much the same as the last one.
+
+;;; We don not see how this procedure should be lambda-dropped more than it 
 ;;; already is. This question seems to make more sense with regard to Exercise
 ;;; 10, where one could omit p in all but the outermost lambda.
 

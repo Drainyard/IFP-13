@@ -204,17 +204,17 @@
             '(4 5 6))
       (test candidate
             representation-of-candidate
-            '(lambda (n_init)
+            '((lambda (n_init)
                (letrec ([fac
                          (lambda (n)
-                           (if (zero? n)
+                           (if (equal? 0 n)
                                1
-                               (* n (fac (1- n)))))])
+                               (* n (fac (- n 1)))))])
                  (fac n_init)))
             5)
-            '120)
+      '120)
       ;;; add more here
-      'done))
+      'done)))
 
 ;;;;;;;;;;
 
@@ -588,7 +588,8 @@
     -
     *
     >=
-    fac
+    ;; fac
+    
     ;;; etc.
     ))
 
@@ -659,7 +660,7 @@
         -
         *
         >=
-        fac
+        ;; fac
         ;;; etc.
         ))
 
@@ -985,7 +986,12 @@
 ;;   200
 ;;   > 
 
-;;; From this we can see that the interpreter evaluates sub-expressions in an unspecified order.
+;;; The order of evaluation depends on the evaluation order of underlying system, just as the 
+;;; evaluation strategy. This mean that when running the interpreter in Scheme, the order will
+;;; be unspecified and the strategy will be call-by-value, since this is how Petite Chez
+;;; Scheme is implemented. If on the other hand, we run our interpreter after having
+;;; loaded either the call-by-need or the call-by-name interpreter, the strategy will be the
+;;; same as the given underlying interpreter.
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;;; Exercise 2 (Brynja) ;;;
@@ -1008,27 +1014,27 @@
 
 ;;; If we define 
 
-(define fac
-  (lambda (n_init)
-    (letrec ([visit
-              (lambda (n)
-                (cond
-                  [(or (equal? 0 n)
-                       (equal? 1 n))
-                   1]
-                  [else
-                   (* n (visit (- n 1)))]))])
-      (cond
-        [(is-integer? n_init)
-         (if (>= n_init 0)
-             (visit n_init)
-             (errorf 'fac
-                     "not a non-negative number: ~s"
-                     n_init))]
-       [else
-        (errorf 'fac
-                "not a number: ~s"
-                n_init)]))))
+;; (define fac
+;;   (lambda (n_init)
+;;     (letrec ([visit
+;;               (lambda (n)
+;;                 (cond
+;;                   [(or (equal? 0 n)
+;;                        (equal? 1 n))
+;;                    1]
+;;                   [else
+;;                    (* n (visit (- n 1)))]))])
+;;       (cond
+;;         [(is-integer? n_init)
+;;          (if (>= n_init 0)
+;;              (visit n_init)
+;;              (errorf 'fac
+;;                      "not a non-negative number: ~s"
+;;                      n_init))]
+;;        [else
+;;         (errorf 'fac
+;;                 "not a number: ~s"
+;;                 n_init)]))))
 
 
 ;;;;;;;;;;;;;;;;;;
