@@ -622,7 +622,12 @@
         [(null? xs_init)
          '()]
         [(pair? xs_init)
-         (visit (car xs_init) 1 (cdr xs_init))]
+         (let ([x (car xs_init)])
+           (if (symbol? x)
+               (visit x 1 (cdr xs_init))
+               (errorf 'run-length_acc-final1
+                       "Not a symbol: ~s"
+                       x)))]
         [else
          (errorf 'run-length_acc-final1
                  "Not a proper input list: ~s"
@@ -659,7 +664,12 @@
         [(null? xs_init)
          '()]
         [(pair? xs_init)
-         (visit-outer (car xs_init) (cdr xs_init))]
+         (let ([x (car xs_init)])
+           (if (symbol? x)
+               (visit-outer x (cdr xs_init))
+                (errorf 'run-length_acc-final2
+                       "Not a symbol: ~s"
+                       x)))]
         [else
          (errorf 'run-length_acc-final2
                  "Not a proper input list: ~s"
