@@ -632,10 +632,10 @@
 (define run-length_acc-final2
   (lambda (xs_init)
     (letrec ([visit-outer 
-              (trace-lambda outer (x xs)
+              (lambda (x xs)
                 (letrec 
                     ([visit-inner 
-                      (trace-lambda inner (n xs)
+                      (lambda (n xs)
                         (cond
                           [(null? xs)
                            (list (cons x n))]

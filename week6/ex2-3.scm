@@ -135,10 +135,10 @@
                                         (values (cons x 1) (cons p1 r)))]
                                    [else
                                     (values (cons x 1) r)]))
-                               (errorf 'run-length_mult-values
+                               (errorf 'run-length_mul-values
                                        "Not a symbol: ~s"
                                        x)))]
-                        [else (errorf 'run-length_mult-values
+                        [else (errorf 'run-length_mul-values
                                       "Not a proper list: ~s"
                                       xs_init)]))])
       (if (null? xs_init)
@@ -156,5 +156,144 @@
 
 (unless (test-run-length run-length_mul-values)
   (printf "fail: (test-run-length run-length_mul-values) ~n"))
+
+
+(define run-length_mul-values_alt
+  (lambda (xs_init)
+    (letrec ([visit 
+              (lambda (x n xs)
+                (cond
+                  [(null? xs)
+                   (values (cons x n) '())]
+                  [(pair? xs)
+                   (let ([new-x (car xs)])
+                     (if (symbol? new-x)
+                         (if (equal? x new-x)
+                             (values (visit x (1+ n) (cdr xs)))
+                             (let-values ([(p r) 
+                                           (visit new-x 1 (cdr xs))]) 
+                               (values (cons x n) (cons p r))))
+                         (errorf 'run-length_mul-values_alt
+                                 "Not a symbol: ~s"
+                                 x)))]
+                  [else (errorf 'run-length_mul-values_alt
+                                "Not a proper list: ~s"
+                                xs_init)]))])
+      (cond 
+        [(null? xs_init)
+         '()]
+        [(pair? xs_init)
+         (let ([x (car xs_init)])
+           (if (symbol? x)
+               (let-values ([(r1 r2) (visit x 1 (cdr xs_init))])
+                 (cons r1 r2))
+               (errorf 'run-length_mul-values_alt
+                       "Not a symbol: ~s"
+                       x)))]
+        [else
+         (errorf 'run-length_mul-values_alt
+                 "Not a proper input list: ~s"
+                 xs_init)]))))
+
+
+(unless (test-run-length run-length_mul-values_alt)
+  (printf "fail: (test-run-length run-length_mul-values_alt) ~n"))
+
+
+(define run-length_mul-values_alt2
+  (lambda (xs_init)
+    (letrec ([visit-outer 
+              (lambda (x xs)
+                (letrec ([visit-inner 
+                          (lambda (n xs)  
+                            (cond
+                              [(null? xs)
+                               (values (cons x n) '())]
+                              [(pair? xs)
+                               (let ([new-x (car xs)])
+                                 (if (symbol? new-x)
+                                     (if (equal? x new-x)
+                                         (values (visit-inner (1+ n) (cdr xs)))
+                                         (let-values ([(p r) 
+                                                       (visit-outer new-x 
+                                                                    (cdr xs))]) 
+                                           (values (cons x n) (cons p r))))
+                                     (errorf 'run-length_mul-values_alt2
+                                             "Not a symbol: ~s"
+                                             x)))]
+                              [else (errorf 'run-length_mul-values_alt2
+                                            "Not a proper list: ~s"
+                                            xs_init)]))])
+                  (visit-inner 1 xs)))])
+      (cond 
+        [(null? xs_init)
+         '()]
+        [(pair? xs_init)
+         (let ([x (car xs_init)])
+           (if (symbol? x)
+               (let-values ([(p r) (visit-outer x (cdr xs_init))])
+                 (cons p r))
+               (errorf 'run-length_mul-values_alt2
+                       "Not a symbol: ~s"
+                       x)))]
+        [else
+         (errorf 'run-length_mul-values_alt2
+                 "Not a proper input list: ~s"
+                 xs_init)]))))
+
+
+(unless (test-run-length run-length_mul-values_alt2)
+  (printf "fail: (test-run-length run-length_mul-values_alt2) ~n"))
+
+;;; The two alternate versions are (very much) based on the skeleton given to us
+;;; for the run-length exercises in week 5. 
+;;; The traces below illustrate that there are only n non-tail-recursive calls,
+;;; since only the calls with a new x are not tail-recursive.
+
+
+;; > (run-length_mul-values_alt '(a a a b b b a c c))
+;; |(visit a 1 (a a b b b a c c))
+;; |(visit a 2 (a b b b a c c))
+;; |(visit a 3 (b b b a c c))
+;; | (visit b 1 (b b a c c))
+;; | (visit b 2 (b a c c))
+;; | (visit b 3 (a c c))
+;; | |(visit a 1 (c c))
+;; | | (visit c 1 (c))
+;; | | (visit c 2 ())
+;; | | (c . 2)
+;;     ()
+;; | |(a . 1)
+;;    ((c . 2))
+;; | (b . 3)
+;;   ((a . 1) (c . 2))
+;; |(a . 3)
+;;  ((b . 3) (a . 1) (c . 2))
+;; ((a . 3) (b . 3) (a . 1) (c . 2))
+
+
+;; > (run-length_mul-values_alt2 '(a a a b b b a c c))
+;; |(outer a (a a b b b a c c))
+;; |(inner 1 (a a b b b a c c))
+;; |(inner 2 (a b b b a c c))
+;; |(inner 3 (b b b a c c))
+;; | (outer b (b b a c c))
+;; | (inner 1 (b b a c c))
+;; | (inner 2 (b a c c))
+;; | (inner 3 (a c c))
+;; | |(outer a (c c))
+;; | |(inner 1 (c c))
+;; | | (outer c (c))
+;; | | (inner 1 (c))
+;; | | (inner 2 ())
+;; | | (c . 2)
+;;     ()
+;; | |(a . 1)
+;;    ((c . 2))
+;; | (b . 3)
+;;   ((a . 1) (c . 2))
+;; |(a . 3)
+;;  ((b . 3) (a . 1) (c . 2))
+;; ((a . 3) (b . 3) (a . 1) (c . 2))
 
 "ex2-3.scm"
