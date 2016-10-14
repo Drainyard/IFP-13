@@ -213,6 +213,18 @@
                  (fac n_init)))
             5)
       '120)
+      (test candidate
+            representation-of-candidate
+            '(is-char? #\j)
+            #t)
+      (test candidate
+            representation-of-candidate
+            '(string-ref "hej" 2)
+            #\j)
+      (test candidate
+            representation-of-candidate
+            '(is-char? (string-ref "hej" 2))
+            #t)
       ;;; add more here
       'done)))
 
@@ -270,6 +282,9 @@
   string?)
 
 ;;; Exercise 4
+
+;;; Added test-cases in the meta-test
+
 (define is-char?
   char?)
 
@@ -1045,6 +1060,8 @@
 ;;; and values with these. Finally, we extended interpret with one extra cond-clause for characters.
 
 ;;; For string-ref we extended predefined-variables and values with string-ref. 
+
+;;; Finally, we extended the meta-test with a couple of new examples.
 
 ;;; end of week-05_self-interpreter-with-solutions.scm
 

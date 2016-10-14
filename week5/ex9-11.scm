@@ -598,6 +598,100 @@
 
 ;;; This version is pretty much the same as the last one.
 
+(define run-length_acc-final1
+  (lambda (xs_init)
+    (letrec ([visit (lambda (x n xs)
+                      (cond
+                        [(null? xs)
+                         (list (cons x n))]
+                        [(pair? xs)
+                         (let ([new-x (car xs)])
+                           (if (symbol? new-x)
+                               (if (equal? x new-x)
+                                   (visit x (1+ n) (cdr xs))
+                                   (cons (cons x n) (visit new-x 1 (cdr xs))))
+                               (errorf 'run-length_acc-final1
+                                       "Not a symbol: ~s"
+                                       x)))]
+                        [else
+                         (errorf 'run-length_acc-final1
+                                 "Not a proper list: ~s in ~s"
+                                 xs
+                                 xs_init)]))])
+      (cond
+        [(null? xs_init)
+         '()]
+        [(pair? xs_init)
+         (visit (car xs_init) 1 (cdr xs_init))]
+        [else
+         (errorf 'run-length_acc-final1
+                 "Not a proper input list: ~s"
+                 xs_init)]))))
+
+
+(define run-length_acc-final2
+  (lambda (xs_init)
+    (letrec ([visit-outer 
+              (trace-lambda outer (x xs)
+                (letrec 
+                    ([visit-inner 
+                      (trace-lambda inner (n xs)
+                        (cond
+                          [(null? xs)
+                           (list (cons x n))]
+                          [(pair? xs)
+                           (let ([new-x (car xs)])
+                             (if (symbol? new-x)
+                                 (if (equal? x new-x)
+                                     (visit-inner (1+ n) (cdr xs))
+                                     (cons (cons x n) 
+                                           (visit-outer new-x (cdr xs))))
+                                 (errorf 'run-length_acc-final2
+                                         "Not a symbol: ~s"
+                                         x)))]
+                          [else
+                           (errorf 'run-length_acc-final2
+                                   "Not a proper list: ~s in ~s"
+                                   xs
+                                   xs_init)]))])
+                  (visit-inner 1 xs)))])
+      (cond
+        [(null? xs_init)
+         '()]
+        [(pair? xs_init)
+         (visit-outer (car xs_init) (cdr xs_init))]
+        [else
+         (errorf 'run-length_acc-final2
+                 "Not a proper input list: ~s"
+                 xs_init)]))))
+
+;;; As you strongly suggested in your feedback, a trace on the outer and inner
+;;; visits illustrates clearly that a new layer of procedure calls is started
+;;; every time the character changes and therefore "outer" is invoked. 
+;;; This results in n non-tail-recursive calls as required. 
+
+
+;; > (run-length_acc-final2 '(a a a b b b a c c c))
+;; |(outer a (a a b b b a c c c))
+;; |(inner 1 (a a b b b a c c c))
+;; |(inner 2 (a b b b a c c c))
+;; |(inner 3 (b b b a c c c))
+;; | (outer b (b b a c c c))
+;; | (inner 1 (b b a c c c))
+;; | (inner 2 (b a c c c))
+;; | (inner 3 (a c c c))
+;; | |(outer a (c c c))
+;; | |(inner 1 (c c c))
+;; | | (outer c (c c))
+;; | | (inner 1 (c c))
+;; | | (inner 2 (c))
+;; | | (inner 3 ())
+;; | | ((c . 3))
+;; | |((a . 1) (c . 3))
+;; | ((b . 3) (a . 1) (c . 3))
+;; |((a . 3) (b . 3) (a . 1) (c . 3))
+;; ((a . 3) (b . 3) (a . 1) (c . 3))
+
 ;;; We don not see how this procedure should be lambda-dropped more than it 
 ;;; already is. This question seems to make more sense with regard to Exercise
 ;;; 10, where one could omit p in all but the outermost lambda.
