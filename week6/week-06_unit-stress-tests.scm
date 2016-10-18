@@ -90,7 +90,11 @@
                          (p x)]
                         [(pair? xs)
                          (and (p x)
-                              (visit (car xs) (cdr xs)))]))])
+                              (visit (car xs) (cdr xs)))]
+                        [else
+                         (errorf 'andmap1
+                                 "Not a proper list: ~s"
+                                 xs)]))])
       (if (procedure? p)
           (if (null? vs)
               #t
@@ -175,7 +179,11 @@
                          (p x)]
                         [(pair? xs)
                          (or (p x)
-                             (visit (car xs) (cdr xs)))]))])
+                             (visit (car xs) (cdr xs)))]
+                        [else
+                         (errorf 'ormap1
+                                 "Not a proper list: ~s"
+                                 xs)]))])
       (if (procedure? p)
           (if (null? vs)
               #f
