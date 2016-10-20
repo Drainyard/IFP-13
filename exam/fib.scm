@@ -136,7 +136,7 @@
   (printf "(test-fib fib_lin2) failed~n"))
 
 
-;;;;;;;;;; Logarithmic
+;;;;;;;;;; Matrices
 ;;; The given matrix:
 ;;;    _    _
 ;;;   |      |
@@ -447,6 +447,13 @@
   (printf "fail: (test-fib fib_p-q) ~n"))
 
 
+;;; We tried timing our different fib versions for fun and stumbled over the 
+;;; fact that the p_q version, in spite of having logarithmic complexity, is
+;;; a lot slower than the two first linear implementations. The timing results
+;;; stay in this order until n is just below 300000 (at least on our laptops and
+;;; for the first linear version). The logarithmic matrix version is 
+;;; unequivocally faster.
+
 ;;;;;;;;;;
 
 (define power_Magritte
@@ -554,7 +561,7 @@
                         [(= n 2)
                          `(+ ,a1 ,a2)]
                         [else
-                         (visit (- n 1) a2 (+ a1 a2))]))])
+                         `,(visit (- n 1) a2 (+ a1 a2))]))])
       (if (and (integer? n_init)
                (not (negative? n_init)))
           (cond 
@@ -599,7 +606,7 @@
 (unless (test-fib_lin_Magritte fib_lin2_Magritte)
   (printf "fail: (test-fib_lin_Magritte fib_lin2_Magritte) ~n"))
 
-;;; fib using matrices:
+;;; fib Magritte using matrices:
 (define test-fib_matrix_naive_Magritte
   (lambda (candidate)
     (and (equal? (candidate 0)
@@ -708,12 +715,12 @@
             (letrec ([visit (lambda (n)
                               (cond
                                 [(= n 1)
-                                 m]
+                                 `,m]
                                 [else 
                                  `(matrix-mul ,m ,(visit (1- n)))]))])
               (if (= e 0)
-                  (make-2x2-matrix 1 0 0 1)
-                  (visit e)))
+                  `,(make-2x2-matrix 1 0 0 1)
+                  `,(visit e)))
             (errorf 'matrix-exp_naive_Magritte
                     "Not a non-negative integer: ~s"
                     e))
@@ -762,17 +769,17 @@
     (letrec ([visit (lambda (i)
                       (if (even? i)
                           (if (= i 0)
-                              (make-2x2-matrix 1 0 0 1)
+                              `,(make-2x2-matrix 1 0 0 1)
                               (let ([res (visit (quotient i 2))])
                                 `(matrix-mul ,res ,res)))
                           (if (= i 1)
-                              m
+                              `,m
                               (let ([res (visit (quotient i 2))])
                                 `(matrix-mul (matrix-mul ,res ,res) ,m)))))])
       (if (and (integer? e)
                (not (negative? e)))
           (if (2x2-matrix? m)
-              (visit e)
+              `,(visit e)
               (errorf 'matrix-exp_Magritte
                       "Not a proper 2x2 matrix: ~s"
                       m))
@@ -982,7 +989,7 @@
   (lambda (n)
     (letrec ([visit 
               (lambda (i)
-                (if (< (fib_p-q i) n)
+                (if (< (fib_matrix i) n)
                     (visit (1+ i))
                     i))])
       (if (and (number? n)
