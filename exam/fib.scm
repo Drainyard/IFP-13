@@ -15,6 +15,12 @@
              (> n 0)
              (proper-list-of-given-length? (cdr v)
                                            (- n 1))))))
+
+
+(define square
+  (lambda (x)
+    (* x x)))
+
 ;;;;;;;;;;;;;;;;;;;;
 
 (define test-fib
@@ -32,6 +38,8 @@
          (= (candidate 10) 55)
          (= (candidate 11) 89)
          (= (candidate 12) 144)
+         (= (candidate 20) 6765)
+         ;; (= (candidate 42) 267914296)    Takes too long for v0
          ;;; etc.
          )))
 
@@ -86,8 +94,9 @@
 ;;; statements that are checked in every iteration of visit even though they
 ;;; only match at most once in the very beginning, in which case a visit call
 ;;; is unnecessary.
-;;; The procedure has linear complexity because there is one visit call every 
-;;; time n is decremented, which result in (fewer than) n visit calls overall.
+;;; The procedure has linear complexity (complexity being measured as the number
+;;; of visit calls) because there is one visit call every time n is decremented,
+;;; which result in (fewer than) n visit calls overall.
 
 (unless (test-fib fib_lin1)
   (printf "(test-fib fib_lin1) failed~n"))
@@ -117,7 +126,8 @@
                   "Not a non-negative integer: ~s"
                   n_init)))))
 
-;;; This version is the first linear one only with let-values instead of 
+
+;;; This version is like the first linear one only with let-values instead of 
 ;;; accumulators. 
 ;;; The same arguments both for the two preliminary checks and the complexity
 ;;; apply.
@@ -156,8 +166,10 @@
 ;;; multiplication. 
 ;;; Thinking of a 2x2 matrix as a list of two pairs, where each pair represents
 ;;; a row of the matrix, multiplication can be done as follows:
-;;; Given two 2x2 matrices A = ((a00 . a01) (a10 . a11)) 
-;;;                        B = ((b00 . b01) (b10 . b11))
+;;; Given two 2x2 matrices:
+;;;            A = ((a00 . a01) (a10 . a11)) 
+;;;            B = ((b00 . b01) (b10 . b11))
+;;; Their product will be:
 ;;;           AB = (((+ (* a00 b00) (* a01 b10)) . (+ (* a00 b01) (* a01 b11)))
 ;;;                 ((+ (* a10 b00) (* a11 b10)) . (+ (* a10 b01) (* a11 b11))))
 ;;;
@@ -296,6 +308,8 @@
                 "Not a proper 2x2 matrix: ~s"
                 m))))
 
+;;; This way of doing matrix exponentiation runs in linear time due to the one
+;;; visit call every time n is decremented.
 
 (unless (test-matrix-exp matrix-exp_naive)
   (printf "fail: (test-matrix-exp matrix-exp_naive) ~n"))
@@ -318,6 +332,9 @@
                 n))))
 
 
+;;; This version runs in linear time, since the matrix exponentiation takes 
+;;; linear time. 
+
 (unless (test-fib fib_matrix_naive)
   (printf "fail: (test-fib fib_matrix_naive) ~n"))
 
@@ -336,7 +353,20 @@
                               m
                               (let ([res (visit (quotient i 2))])
                                 (matrix-mul (matrix-mul res res) m)))))])
-      (visit e))))
+      (if (and (integer? e)
+               (not (negative? e)))
+          (if (2x2-matrix? m)
+              (visit e)
+              (errorf 'matrix-exp
+                      "Not a proper 2x2 matrix: ~s"
+                      m))
+          (errorf 'matrix-exp
+                  "Not a non-negative integer: ~s"
+                  e)))))
+
+
+;;; This way of doing matrix exponentiation has logarithmic time complexity 
+;;; because there is one visit call every time the exponent is divided by two.
 
 
 (unless (test-matrix-exp matrix-exp)
@@ -357,12 +387,16 @@
                 "Not a non-negative integer: ~s"
                 n))))
 
+;;; This way of computing Fibonacci numbers runs in logarithmic time, because it
+;;; is based on the logarithmic matrix exponentiation.
+
+
 (unless (test-fib fib_matrix)
   (printf "fail: (test-fib fib_matrix) ~n"))
 
 
-;;; The property of Fibonacci numbers illustrated in the about-fib function give
-;;; another way of writing the fib function with logarithmic complexity.
+;;; The property of Fibonacci numbers illustrated in the about-fib function 
+;;; gives another way of writing the fib function with logarithmic complexity.
 
 ;;; fib(p + q + 1) = fib(p + 1) * fib(q + 1) + fib(p) * fib(q) 
 
@@ -375,6 +409,7 @@
 ;;; As exemplified above, this means one can compute the nth Fibonacci number
 ;;; logarithmically by checking whether n is even or odd and calling recursively
 ;;; based on this.
+
 
 (define fib_p-q
   (lambda (n_init)
@@ -405,8 +440,8 @@
 
 ;;; This version also has logarithmic time complexity, since the input argument
 ;;; is roughly halved for each call. The fact that there are two or three 
-;;; different calls only gives a constant factor and therefore does not affect 
-;;; the overall complexity.
+;;; visit calls only adds a constant factor and therefore does not affect the 
+;;; overall complexity.
 
 (unless (test-fib fib_p-q)
   (printf "fail: (test-fib fib_p-q) ~n"))
@@ -425,10 +460,6 @@
             (visit n))))))
 
 ;;;;;;;;;;
-
-(define square
-  (lambda (x)
-    (* x x)))
 
 (define binary-power
   (lambda (x n)
@@ -458,10 +489,14 @@
 
 
 
-;;; First, a magrittified version of the naive fib function given to us:
+;;; First, to get in the mood, a magrittified version of the naive fib function
+;;; given to us:
+
 (define test-fib_v0_Magritte
   (lambda (candidate)
-    (and (equal? (candidate 1)
+    (and (equal? (candidate 0)
+                 '0)
+         (equal? (candidate 1)
                  '1)
          (equal? (candidate 2)
                  '(+ 1 0))
@@ -497,7 +532,9 @@
 ;;; The first linear version
 (define test-fib_lin_Magritte
   (lambda (candidate)
-    (and (equal? (candidate 1)
+    (and (equal? (candidate 0)
+                 '0)
+         (equal? (candidate 1)
                  '1)
          (equal? (candidate 2)
                  '(+ 0 1))
@@ -565,7 +602,9 @@
 ;;; fib using matrices:
 (define test-fib_matrix_naive_Magritte
   (lambda (candidate)
-    (and (equal? (candidate 1)
+    (and (equal? (candidate 0)
+                 '0)
+         (equal? (candidate 1)
                  '1)
          (equal? (candidate 2)
                  '(x11 (matrix-exp_naive fib-base-matrix 1)))
@@ -573,6 +612,7 @@
                  '(x11 (matrix-exp_naive fib-base-matrix 6)))
          ; etc
          )))
+
 
 
 (define fib_matrix_naive_Magritte
@@ -596,7 +636,9 @@
 
 (define test-fib_matrix_Magritte
   (lambda (candidate)
-    (and (equal? (candidate 1)
+    (and (equal? (candidate 0)
+                 '0)
+         (equal? (candidate 1)
                  '1)
          (equal? (candidate 2)
                  '(x11 (matrix-exp fib-base-matrix 1)))
@@ -625,10 +667,211 @@
 (unless (test-fib_matrix_Magritte fib_matrix_Magritte)
   (printf "fail: (test-fib_matrix_Magritte fib_matrix_Magritte) ~n"))
 
-;;; Last but not least, fib with the p-q property:
+
+;;; If we want the matrix exponentiation in Magritte style as well:
+
+;;; Tests first:
+
+(define test-matrix-exp_naive_Magritte
+  (lambda (candidate)
+    (and (equal? (candidate (make-2x2-matrix 0 0 0 0) 0)
+                 (make-2x2-matrix 1 0 0 1))
+         (equal? (candidate (make-2x2-matrix 0 0 0 0) 1)
+                 (make-2x2-matrix 0 0 0 0))
+         (equal? (candidate (make-2x2-matrix 0 0 0 0) 3)
+                 '(matrix-mul ((0 . 0) (0 . 0))
+                              (matrix-mul ((0 . 0) (0 . 0))
+                                          ((0 . 0) (0 . 0)))))
+         (equal? (candidate (make-2x2-matrix 10 10 10 10) 0)
+                 (make-2x2-matrix 1 0 0 1))
+         (equal? (candidate fib-base-matrix 1)
+                 '((0 . 1) (1 . 1)))
+         (equal? (candidate fib-base-matrix 2)
+                 '(matrix-mul ((0 . 1) (1 . 1))
+                              ((0 . 1) (1 . 1))))
+         (equal? (candidate fib-base-matrix 4)
+                 ' (matrix-mul ((0 . 1) (1 . 1))
+                               (matrix-mul ((0 . 1) (1 . 1))
+                                           (matrix-mul ((0 . 1) (1 . 1))
+                                                       ((0 . 1) (1 . 1))))))
+         ; etc.
+         )))
+
+
+
+
+(define matrix-exp_naive_Magritte
+  (lambda (m e)
+    (if (2x2-matrix? m)
+        (if (and (number? e)
+                 (>= e 0))
+            (letrec ([visit (lambda (n)
+                              (cond
+                                [(= n 1)
+                                 m]
+                                [else 
+                                 `(matrix-mul ,m ,(visit (1- n)))]))])
+              (if (= e 0)
+                  (make-2x2-matrix 1 0 0 1)
+                  (visit e)))
+            (errorf 'matrix-exp_naive_Magritte
+                    "Not a non-negative integer: ~s"
+                    e))
+        (errorf 'matrix-exp_naive_Magritte
+                "Not a proper 2x2 matrix: ~s"
+                m))))
+
+
+(unless (test-matrix-exp_naive_Magritte matrix-exp_naive_Magritte)
+  (printf "fail: (test-matrix-exp_naive_Magritte matrix-exp_naive_Magritte) ~n"))
+
+
+(define test-matrix-exp_Magritte
+  (lambda (candidate)
+    (and (equal? (candidate (make-2x2-matrix 0 0 0 0) 0)
+                 (make-2x2-matrix 1 0 0 1))
+         (equal? (candidate (make-2x2-matrix 0 0 0 0) 1)
+                 (make-2x2-matrix 0 0 0 0))
+         (equal? (candidate (make-2x2-matrix 0 0 0 0) 3)
+                 '(matrix-mul (matrix-mul ((0 . 0) (0 . 0))
+                                          ((0 . 0) (0 . 0)))
+                              ((0 . 0) (0 . 0))))
+         (equal? (candidate (make-2x2-matrix 10 10 10 10) 0)
+                 (make-2x2-matrix 1 0 0 1))
+         (equal? (candidate fib-base-matrix 1)
+                 '((0 . 1) (1 . 1)))
+         (equal? (candidate fib-base-matrix 2)
+                 '(matrix-mul ((0 . 1) (1 . 1))
+                              ((0 . 1) (1 . 1))))
+         (equal? (candidate fib-base-matrix 4)
+                 '(matrix-mul (matrix-mul ((0 . 1) (1 . 1))
+                                          ((0 . 1) (1 . 1)))
+                              (matrix-mul ((0 . 1) (1 . 1))
+                                          ((0 . 1) (1 . 1)))))
+         (equal? (candidate fib-base-matrix 5)
+                 '(matrix-mul (matrix-mul (matrix-mul ((0 . 1) (1 . 1))
+                                                      ((0 . 1) (1 . 1)))
+                                          (matrix-mul ((0 . 1) (1 . 1))
+                                                      ((0 . 1) (1 . 1))))
+                              ((0 . 1) (1 . 1))))
+         ; etc.
+         )))
+
+(define matrix-exp_Magritte
+  (lambda (m e)
+    (letrec ([visit (lambda (i)
+                      (if (even? i)
+                          (if (= i 0)
+                              (make-2x2-matrix 1 0 0 1)
+                              (let ([res (visit (quotient i 2))])
+                                `(matrix-mul ,res ,res)))
+                          (if (= i 1)
+                              m
+                              (let ([res (visit (quotient i 2))])
+                                `(matrix-mul (matrix-mul ,res ,res) ,m)))))])
+      (if (and (integer? e)
+               (not (negative? e)))
+          (if (2x2-matrix? m)
+              (visit e)
+              (errorf 'matrix-exp_Magritte
+                      "Not a proper 2x2 matrix: ~s"
+                      m))
+          (errorf 'matrix-exp_Magritte
+                  "Not a non-negative integer: ~s"
+                  e)))))
+
+(unless (test-matrix-exp_Magritte matrix-exp_Magritte)
+  (printf "fail: (test-matrix-exp_Magritte matrix-exp_Magritte) ~n"))
+
+
+(define test-fib_matrix_naive_Magritte^2
+  (lambda (candidate)
+    (and (equal? (candidate 0)
+                 '0)
+         (equal? (candidate 1)
+                 '1)
+         (equal? (candidate 2)
+                 '(x11 ((0 . 1) (1 . 1))))
+         (equal? (candidate 7)
+                 '(x11 (matrix-mul
+                        ((0 . 1) (1 . 1))
+                        (matrix-mul
+                         ((0 . 1) (1 . 1))
+                         (matrix-mul
+                          ((0 . 1) (1 . 1))
+                          (matrix-mul
+                           ((0 . 1) (1 . 1))
+                           (matrix-mul 
+                            ((0 . 1) (1 . 1)) 
+                            ((0 . 1) (1 . 1)))))))))
+         ; etc
+         )))
+
+
+(define fib_matrix_naive_Magritte^2
+  (lambda (n)
+    (if (and (integer? n)
+             (not (negative? n)))
+        (cond
+          [(= n 0)
+           `0]
+          [(= n 1)
+           `1]
+          [else
+           `(x11 ,(matrix-exp_naive_Magritte fib-base-matrix (1- n)))])
+        (errorf 'fib_matrix_naive_Magritte^2
+                "Not a non-negative integer: ~s"
+                n))))
+
+(unless (test-fib_matrix_naive_Magritte^2 fib_matrix_naive_Magritte^2)
+  (printf "fail: (test-fib_matrix_naive_Magritte^2 fib_matrix_naive_Magritte^2 ~n"))
+
+
+(define test-fib_matrix_Magritte^2
+  (lambda (candidate)
+    (and (equal? (candidate 0)
+                 '0)
+         (equal? (candidate 1)
+                 '1)
+         (equal? (candidate 2)
+                 '(x11 ((0 . 1) (1 . 1))))
+         (equal? (candidate 7)
+                 '(x11 (matrix-mul (matrix-mul (matrix-mul ((0 . 1) (1 . 1)) 
+                                                           ((0 . 1) (1 . 1)))
+                                               ((0 . 1) (1 . 1)))
+                                   (matrix-mul (matrix-mul ((0 . 1) (1 . 1)) 
+                                                           ((0 . 1) (1 . 1)))
+                                    ((0 . 1) (1 . 1))))))
+         ; etc
+         )))
+
+
+(define fib_matrix_Magritte^2
+  (lambda (n)
+    (if (and (integer? n)
+             (not (negative? n)))
+        (cond
+          [(= n 0)
+           `0]
+          [(= n 1)
+           `1]
+          [else
+           `(x11 ,(matrix-exp_Magritte fib-base-matrix (1- n)))])
+        (errorf 'fib_matrix_Magritte^2
+                "Not a non-negative integer: ~s"
+                n))))
+
+
+(unless (test-fib_matrix_Magritte^2 fib_matrix_Magritte^2)
+  (printf "fail: (test-fib_matrix_Magritte^2 fib_matrix_Magritte^2) ~n"))
+
+;;; Last but not least, fib based on the p-q property:
+
 (define test-fib_p-q_Magritte
   (lambda (candidate)
-    (and (equal? (candidate 1)
+    (and (equal? (candidate 0)
+                 '0)
+         (equal? (candidate 1)
                  '1)
          (equal? (candidate 2)
                  '1)
@@ -775,8 +1018,59 @@
                   n)))))
 
 
+;;; This version computes the Fibonacci numbers using two accumulators. For each
+;;; step the addition of the two accumulators and therefore the i'th Fibonacci
+;;; number is compared to the input number.
+
 (unless (test-index-of-nearest-fibonacci-number index-of-nearest-fibonacci-number_lin1)
   (printf "fail: (test-index-of-nearest-fibonacci-number index-of-nearest-fibonacci-number_lin1) ~n"))
+
+;;; Index using matrices:
+
+(define fib-base-matrix^3
+  (matrix-exp fib-base-matrix 3))
+
+(define index-of-nearest-fibonacci-number_matrix
+  (lambda (n)
+    (letrec ([visit (lambda (i m)
+                      (if (>= (x11 m) n)
+                          (cond [(>= (x00 m) n)
+                                 (- i 2)]
+                                [(>= (x10 m) n)
+                                 (1- i)]
+                                [else
+                                 i])
+                          (visit (+ i 3) (matrix-mul m fib-base-matrix^3))))])
+      (if (and (number? n)
+               (not (negative? n)))
+          (cond [(= 0 n)
+                 0]
+                [(= 1 n)
+                 1]
+                [else
+                 (visit 5 (matrix-mul fib-base-matrix fib-base-matrix^3))])
+          (errorf 'index-of-nearest-fibonacci-number_matrix
+                  "Not a non-negative integer: ~s"
+                  n)))))
+
+;;; The idea behind this version is very similar to the one with accumulators,
+;;; but it uses the Fibonacci matrix instead. The index can be increased by 3
+;;; for each step, because the matrix stores 3 consecutive Fibonacci numbers.
+
+;;; When timing the two versions, we note that the one with accumulators is 
+;;; faster and uses less space than the one with matrices. We believe this is
+;;; due to the fact that a list of two pairs uses more space than two numbers 
+;;; and the multiplication of two matrices takes longer than adding two numbers
+;;; three times.
+
+;;; Both versions run in linear time. In the case of the one with accumulators
+;;; this is due to one visit call for every increment of the index. The matrix
+;;; procedure only calls visit for every thirs index, but this is just a
+;;; constant factor and therefore irrelevant.
+
+(unless (test-index-of-nearest-fibonacci-number index-of-nearest-fibonacci-number_matrix)
+  (printf "fail: (test-index-of-nearest-fibonacci-number index-of-nearest-fibonacci-number_matrix) ~n"))
+
 
 ;;;;;;;;;;;;;;;;;;;;
 
